@@ -9,8 +9,7 @@ import (
 	"github.com/cloudfoundry-incubator/routing-api"
 	"github.com/cloudfoundry-incubator/routing-api-cli/commands"
 	"github.com/cloudfoundry-incubator/routing-api/db"
-	"github.com/cloudfoundry/gorouter/config"
-	"github.com/cloudfoundry/gorouter/token_fetcher"
+	token_fetcher "github.com/cloudfoundry-incubator/uaa-token-fetcher"
 )
 
 var (
@@ -20,13 +19,6 @@ var (
 	oauthURL      = flag.String("oauth-url", "", "")
 	oauthPort     = flag.Int("oauth-port", 0, "")
 )
-
-type OAuthConfig struct {
-	TokenEndpoint string `yaml:"token_endpoint"`
-	ClientName    string `yaml:"client_name"`
-	ClientSecret  string `yaml:"client_secret"`
-	Port          int    `yaml:"port"`
-}
 
 func main() {
 	flag.Parse()
@@ -45,7 +37,7 @@ func main() {
 	}
 
 	client := routing_api.NewClient(*apiEndpoint)
-	config := config.OAuthConfig{
+	config := token_fetcher.OAuthConfig{
 		TokenEndpoint: *oauthURL,
 		ClientName:    *oauthName,
 		ClientSecret:  *oauthPassword,

@@ -4,8 +4,8 @@ import (
 	"github.com/cloudfoundry-incubator/routing-api-cli/commands"
 	"github.com/cloudfoundry-incubator/routing-api/db"
 	"github.com/cloudfoundry-incubator/routing-api/fake_routing_api"
-	"github.com/cloudfoundry/gorouter/token_fetcher"
-	fake_token_fetcher "github.com/cloudfoundry/gorouter/token_fetcher/fakes"
+	token_fetcher "github.com/cloudfoundry-incubator/uaa-token-fetcher"
+	fake_token_fetcher "github.com/cloudfoundry-incubator/uaa-token-fetcher/fakes"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )

@@ -3,7 +3,7 @@ package commands
 import (
 	"github.com/cloudfoundry-incubator/routing-api"
 	"github.com/cloudfoundry-incubator/routing-api/db"
-	"github.com/cloudfoundry/gorouter/token_fetcher"
+	token_fetcher "github.com/cloudfoundry-incubator/uaa-token-fetcher"
 )
 
 func Register(client routing_api.Client, tokenFetcher token_fetcher.TokenFetcher, routes []db.Route) error {

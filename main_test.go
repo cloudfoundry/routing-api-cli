@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"code.google.com/p/go-uuid/uuid"
-	"github.com/cloudfoundry/gorouter/token_fetcher"
+	token_fetcher "github.com/cloudfoundry-incubator/uaa-token-fetcher"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gbytes"
