@@ -18,8 +18,15 @@ import (
 
 var _ = Describe("Main", func() {
 	var (
-		args []string
+		flags []string
 	)
+
+	var buildArgs = func(cmd string, json ...string) []string {
+		args := []string{cmd}
+		args = append(args, flags...)
+		return append(args, json...)
+	}
+
 	Context("Given reasonable arguments", func() {
 		var (
 			server     *ghttp.Server
@@ -62,7 +69,7 @@ var _ = Describe("Main", func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			addr := strings.Split(url.Host, ":")
-			args = []string{
+			flags = []string{
 				"-api", server.URL(),
 				"-oauth-name", "some-name",
 				"-oauth-password", "some-password",
@@ -77,7 +84,7 @@ var _ = Describe("Main", func() {
 		})
 
 		It("registers a route to the routing api", func() {
-			args = append(args, `[{"route":"zak.com","port":3,"ip":"4"}]`)
+			args := buildArgs("register", `[{"route":"zak.com","port":3,"ip":"4"}]`)
 
 			server.SetHandler(0,
 				ghttp.CombineHandlers(
@@ -101,7 +108,7 @@ var _ = Describe("Main", func() {
 		})
 
 		It("registers multiple route to the routing api", func() {
-			args = append(args, `[{"route":"zak.com","ttl":5,"log_guid":"yo"},{"route":"jak.com","port":8,"ip":"11"}]`)
+			args := buildArgs("register", `[{"route":"zak.com","ttl":5,"log_guid":"yo"},{"route":"jak.com","port":8,"ip":"11"}]`)
 			server.SetHandler(0,
 				ghttp.CombineHandlers(
 					ghttp.VerifyRequest("POST", "/v1/routes"),
@@ -130,8 +137,32 @@ var _ = Describe("Main", func() {
 			Expect(server.ReceivedRequests()).To(HaveLen(1))
 		})
 
+		It("Unregisters a route to the routing api", func() {
+			args := buildArgs("unregister", `[{"route":"zak.com","ttl":5,"log_guid":"yo"}]`)
+
+			server.SetHandler(0,
+				ghttp.CombineHandlers(
+					ghttp.VerifyRequest("DELETE", "/v1/routes"),
+					ghttp.VerifyJSONRepresenting([]map[string]interface{}{
+						{
+							"route":    "zak.com",
+							"port":     0,
+							"ip":       "",
+							"ttl":      5,
+							"log_guid": "yo",
+						},
+					}),
+					ghttp.RespondWithJSONEncoded(http.StatusOK, nil),
+				),
+			)
+
+			session := routeRegistrar(args...)
+			Eventually(session).Should(Exit(0))
+			Expect(server.ReceivedRequests()).To(HaveLen(1))
+		})
+
 		It("Requests a token", func() {
-			args = append(args, "")
+			args := buildArgs("register", "")
 			session := routeRegistrar(args...)
 			Eventually(session).Should(Exit(0))
 			Expect(authServer.ReceivedRequests()).To(HaveLen(1))
@@ -141,8 +172,8 @@ var _ = Describe("Main", func() {
 
 	Context("Given unreasonable arguments", func() {
 		BeforeEach(func() {
-			args = []string{
-				"-api", "some.url",
+			flags = []string{
+				"-api", "some-server-name",
 				"-oauth-name", "some-name",
 				"-oauth-password", "some-password",
 				"-oauth-url", "some.oauth.url",
@@ -150,33 +181,54 @@ var _ = Describe("Main", func() {
 			}
 		})
 
-		It("checks for the presence of api", func() {
-			args = args[2:]
+		Context("when no API endpoint is specified", func() {
+			BeforeEach(func() {
+				flags = []string{
+					"-oauth-name", "some-name",
+					"-oauth-password", "some-password",
+					"-oauth-url", "some.oauth.url",
+					"-oauth-port", "666",
+				}
+			})
 
-			session := routeRegistrar(args...)
-			Eventually(session).Should(Exit(1))
-			Eventually(session).Should(Say("please provide an api endpoint"))
+			It("checks for the presence of api", func() {
+				args := buildArgs("register", "")
+				session := routeRegistrar(args...)
+
+				Eventually(session).Should(Exit(1))
+				Eventually(session).Should(Say("Must provide an API endpoint for the routing-api component.\n"))
+			})
 		})
 
-		It("tells you everything you did wrong", func() {
-			session := routeRegistrar()
+		Context("when no flags are given", func() {
+			It("tells you everything you did wrong", func() {
+				session := routeRegistrar("register")
+				Eventually(session).Should(Exit(1))
+				contents := session.Out.Contents()
+				Expect(contents).To(ContainSubstring("Must provide an API endpoint for the routing-api component.\n"))
+				Expect(contents).To(ContainSubstring("Must provide the name of an OAuth client.\n"))
+				Expect(contents).To(ContainSubstring("Must provide an OAuth password/secret.\n"))
+				Expect(contents).To(ContainSubstring("Must provide an URL to the OAuth client.\n"))
+				Expect(contents).To(ContainSubstring("Must provide the port the OAuth client is listening on.\n"))
+			})
+		})
+
+		It("checks for a valid command", func() {
+			session := routeRegistrar("not-a-command")
 			Eventually(session).Should(Exit(1))
-			contents := session.Out.Contents()
-			Expect(contents).To(ContainSubstring("please provide an oauth-name"))
-			Expect(contents).To(ContainSubstring("please provide an oauth-password"))
-			Expect(contents).To(ContainSubstring("please provide an oauth-port"))
-			Expect(contents).To(ContainSubstring("please provide an oauth-url"))
-			Expect(contents).To(ContainSubstring("please provide an api endpoint"))
+			Eventually(session).Should(Say("Not a valid command: not-a-command"))
 		})
 
 		It("checks for the presence of the route json", func() {
+			args := []string{"register"}
+			args = append(args, flags...)
 			session := routeRegistrar(args...)
 			Eventually(session).Should(Exit(1))
-			Eventually(session).Should(Say("please provide routes body"))
+			Eventually(session).Should(Say("Must provide routes JSON."))
 		})
 
 		It("shows the error if registration fails", func() {
-			args = append(args, "")
+			args := buildArgs("register", "")
 			session := routeRegistrar(args...)
 			Eventually(session).Should(Exit(3))
 			Eventually(session).Should(Say("route registration failed:"))

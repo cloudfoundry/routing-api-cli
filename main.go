@@ -21,12 +21,19 @@ var (
 )
 
 func main() {
-	flag.Parse()
+	fmt.Println(os.Args)
+	cmd := os.Args[1]
+	validateCommand(cmd)
 
+	err := flag.CommandLine.Parse(os.Args[2:])
+	if err != nil {
+		fmt.Println("Error parsing flags:", err)
+		os.Exit(1)
+	}
 	issues := checkFlags()
 
 	if flag.NArg() == 0 {
-		issues = append(issues, "please provide routes body")
+		issues = append(issues, "Must provide routes JSON.")
 	}
 
 	if len(issues) > 0 {
@@ -36,6 +43,12 @@ func main() {
 		os.Exit(1)
 	}
 
+	runCommand(cmd)
+
+	os.Exit(0)
+}
+
+func runCommand(cmd string) {
 	client := routing_api.NewClient(*apiEndpoint)
 	config := token_fetcher.OAuthConfig{
 		TokenEndpoint: *oauthURL,
@@ -43,39 +56,57 @@ func main() {
 		ClientSecret:  *oauthPassword,
 		Port:          *oauthPort,
 	}
+
 	fetcher := token_fetcher.NewTokenFetcher(&config)
 
 	var routes []db.Route
 	_ = json.Unmarshal([]byte(flag.Args()[0]), &routes)
-	err := commands.Register(client, fetcher, routes)
-	if err != nil {
-		fmt.Println("route registration failed:", err)
-		os.Exit(3)
-	}
 
-	os.Exit(0)
+	switch cmd {
+	case "register":
+		err := commands.Register(client, fetcher, routes)
+		if err != nil {
+			fmt.Println("route registration failed:", err)
+			os.Exit(3)
+		}
+	case "unregister":
+		err := commands.UnRegister(client, fetcher, routes)
+		if err != nil {
+			fmt.Println("route unregisterification failed:", err)
+			os.Exit(3)
+		}
+	}
+}
+
+func validateCommand(cmd string) {
+	switch cmd {
+	case "register":
+	case "unregister":
+	default:
+		fmt.Println("Not a valid command:", cmd)
+	}
 }
 
 func checkFlags() []string {
 	var issues []string
 	if *apiEndpoint == "" {
-		issues = append(issues, "please provide an api endpoint")
+		issues = append(issues, "Must provide an API endpoint for the routing-api component.\n")
 	}
 
 	if *oauthName == "" {
-		issues = append(issues, "please provide an oauth-name")
+		issues = append(issues, "Must provide the name of an OAuth client.\n")
 	}
 
 	if *oauthPassword == "" {
-		issues = append(issues, "please provide an oauth-password")
+		issues = append(issues, "Must provide an OAuth password/secret.\n")
 	}
 
 	if *oauthURL == "" {
-		issues = append(issues, "please provide an oauth-url")
+		issues = append(issues, "Must provide an URL to the OAuth client.\n")
 	}
 
 	if *oauthPort == 0 {
-		issues = append(issues, "please provide an oauth-port")
+		issues = append(issues, "Must provide the port the OAuth client is listening on.\n")
 	}
 	return issues
 }

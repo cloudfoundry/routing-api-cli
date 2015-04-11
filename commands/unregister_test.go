@@ -10,7 +10,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe(".Register", func() {
+var _ = Describe(".UnRegister", func() {
 	var (
 		client       *fake_routing_api.FakeClient
 		tokenFetcher *fake_token_fetcher.FakeTokenFetcher
@@ -22,16 +22,16 @@ var _ = Describe(".Register", func() {
 		tokenFetcher.FetchTokenReturns(&token_fetcher.Token{AccessToken: "token"}, nil)
 	})
 
-	It("registers routes", func() {
+	It("unregisters routes", func() {
 		routes := []db.Route{{}}
-		commands.Register(client, tokenFetcher, routes)
-		Expect(client.UpsertRoutesCallCount()).To(Equal(1))
-		Expect(client.UpsertRoutesArgsForCall(0)).To(Equal(routes))
+		commands.UnRegister(client, tokenFetcher, routes)
+		Expect(client.DeleteRoutesCallCount()).To(Equal(1))
+		Expect(client.DeleteRoutesArgsForCall(0)).To(Equal(routes))
 	})
 
 	It("fetches a token", func() {
 		routes := []db.Route{{}}
-		commands.Register(client, tokenFetcher, routes)
+		commands.UnRegister(client, tokenFetcher, routes)
 		Expect(tokenFetcher.FetchTokenCallCount()).To(Equal(1))
 	})
 })
