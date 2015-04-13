@@ -25,3 +25,14 @@ Routes take the form of an array of json encoded route endpoints
 ```
 '[{"route":"foo.com","port":65340,"ip":"1.2.3.4","ttl":5,"log_guid":"foo-guid"}]'
 ```
+
+### Building the CLI
+
+In order to build the CLI, one should have [godep](https://github.com/tools/godep) installed. Then, do the following:
+
+```bash
+godep restore
+go build -o rtr
+```
+
+This will output a binary called `rtr` that can be used to register routes through the Routing API server.
