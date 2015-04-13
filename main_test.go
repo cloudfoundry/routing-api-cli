@@ -233,6 +233,13 @@ var _ = Describe("Main", func() {
 			Eventually(session).Should(Exit(3))
 			Eventually(session).Should(Say("route registration failed:"))
 		})
+
+		It("shows the error if unregistration fails", func() {
+			args := buildArgs("unregister", "")
+			session := routeRegistrar(args...)
+			Eventually(session).Should(Exit(3))
+			Eventually(session).Should(Say("route unregistration failed:"))
+		})
 	})
 })
 
