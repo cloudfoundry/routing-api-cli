@@ -58,6 +58,8 @@ func main() {
 	app := cli.NewApp()
 	app.Name = "rtr"
 	app.Usage = "A CLI for the Router API server."
+	authors := []cli.Author{cli.Author{Name: "Cloud Foundry Runtime Team", Email: "vcap-dev@cloudfoundry.org"}}
+	app.Authors = authors
 	app.Commands = cliCommands
 	app.CommandNotFound = commandNotFound
 

@@ -33,8 +33,8 @@
 		},
 		{
 			"ImportPath": "github.com/codegangsta/cli",
-			"Comment": "1.2.0-62-gbf4a526",
-			"Rev": "bf4a526f48af7badd25d2cb02d587e1b01be3b50"
+			"Comment": "1.2.0-95-g9b2bd2b",
+			"Rev": "9b2bd2b3489748d4d0a204fa4eb2ee9e89e0ebc6"
 		},
 		{
 			"ImportPath": "github.com/coreos/go-etcd/etcd",
