@@ -1,0 +1,67 @@
+{
+	"ImportPath": "github.com/cloudfoundry-incubator/routing-api-cli",
+	"GoVersion": "go1.4.1",
+	"Deps": [
+		{
+			"ImportPath": "code.google.com/p/go-uuid/uuid",
+			"Comment": "null-15",
+			"Rev": "35bc42037350f0078e3c974c6ea690f1926603ab"
+		},
+		{
+			"ImportPath": "github.com/bmizerany/pat",
+			"Rev": "b8a35001b773c267eb260a691f4e5499a3531600"
+		},
+		{
+			"ImportPath": "github.com/cloudfoundry-incubator/cf_http",
+			"Rev": "db1bf7202e706de8d7460c1b54494ac7ab481a59"
+		},
+		{
+			"ImportPath": "github.com/cloudfoundry-incubator/routing-api",
+			"Rev": "581e4fdba87c6f929fb18f01c53116c55d1bb9a3"
+		},
+		{
+			"ImportPath": "github.com/cloudfoundry-incubator/uaa-token-fetcher",
+			"Rev": "d984db92b74f6a223e6ff2fb028bf379f0fb1a80"
+		},
+		{
+			"ImportPath": "github.com/cloudfoundry/gunk/workpool",
+			"Rev": "de79b69f590594db2b9771018784c55251d5e7e7"
+		},
+		{
+			"ImportPath": "github.com/cloudfoundry/storeadapter",
+			"Rev": "dff7a18fad3c03aae624a5ae0bce53d142d72971"
+		},
+		{
+			"ImportPath": "github.com/codegangsta/cli",
+			"Comment": "1.2.0-62-gbf4a526",
+			"Rev": "bf4a526f48af7badd25d2cb02d587e1b01be3b50"
+		},
+		{
+			"ImportPath": "github.com/coreos/go-etcd/etcd",
+			"Comment": "v0.2.0-rc1-130-g6aa2da5",
+			"Rev": "6aa2da5a7a905609c93036b9307185a04a5a84a5"
+		},
+		{
+			"ImportPath": "github.com/nu7hatch/gouuid",
+			"Rev": "179d4d0c4d8d407a32af483c2354df1d2c91e6c3"
+		},
+		{
+			"ImportPath": "github.com/onsi/ginkgo",
+			"Comment": "v1.1.0-41-g38caab9",
+			"Rev": "38caab951a9ff39f0e61294a1dbaaa074a39228b"
+		},
+		{
+			"ImportPath": "github.com/onsi/gomega",
+			"Comment": "v1.0-33-ge7b2cd9",
+			"Rev": "e7b2cd96b5633fbc5f0c221159a5c1e85323f770"
+		},
+		{
+			"ImportPath": "github.com/tedsuo/rata",
+			"Rev": "b15ebd8bd97ae9202eb00c076d59b2f2824bce37"
+		},
+		{
+			"ImportPath": "github.com/vito/go-sse/sse",
+			"Rev": "bfb56c5590376a59535cd0edb3f5aa3447dbbe65"
+		}
+	]
+}
