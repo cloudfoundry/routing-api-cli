@@ -219,6 +219,18 @@ var _ = Describe("Main", func() {
 			Eventually(session).Should(Say("Not a valid command: not-a-command"))
 		})
 
+		It("outputs help info for a valid command", func() {
+			session := routeRegistrar("register")
+			Eventually(session).Should(Exit(1))
+			Eventually(session).Should(Say("command register"))
+		})
+
+		It("outputs help info for a valid command", func() {
+			session := routeRegistrar("unregister")
+			Eventually(session).Should(Exit(1))
+			Eventually(session).Should(Say("command unregister"))
+		})
+
 		It("checks for the presence of the route json", func() {
 			args := []string{"register"}
 			args = append(args, flags...)

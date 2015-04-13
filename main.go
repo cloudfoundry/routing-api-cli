@@ -15,36 +15,40 @@ import (
 var flags = []cli.Flag{
 	cli.StringFlag{
 		Name:  "api",
-		Usage: "Endpoint for the routing-api.",
+		Usage: "Endpoint for the routing-api. (required)",
 	},
 	cli.StringFlag{
 		Name:  "oauth-name",
-		Usage: "Name of the OAuth client.",
+		Usage: "Name of the OAuth client. (required)",
 	},
 	cli.StringFlag{
 		Name:  "oauth-password",
-		Usage: "Password for OAuth client.",
+		Usage: "Password for OAuth client. (required)",
 	},
 	cli.StringFlag{
 		Name:  "oauth-url",
-		Usage: "URL for OAuth client.",
+		Usage: "URL for OAuth client. (required)",
 	},
 	cli.IntFlag{
 		Name:  "oauth-port",
-		Usage: "Port OAuth client is listening on.",
+		Usage: "Port the OAuth client is listening on. (required)",
 	},
 }
 
 var cliCommands = []cli.Command{
 	{
-		Name:   "register",
-		Usage:  "Registers routes with the routing-api",
+		Name:  "register",
+		Usage: "Registers routes with the routing-api",
+		Description: `Routes must be specified in JSON format, like so:
+'[{"route":"foo.com", "port":12345, "ip":"1.2.3.4", "ttl":5, "log_guid":"log-guid"}]'`,
 		Action: registerRoutes,
 		Flags:  flags,
 	},
 	{
-		Name:   "unregister",
-		Usage:  "Unregisters routes with the routing-api",
+		Name:  "unregister",
+		Usage: "Unregisters routes with the routing-api",
+		Description: `Routes must be specified in JSON format, like so:
+'[{"route":"foo.com", "port":12345, "ip":"1.2.3.4", "ttl":5, "log_guid":"log-guid"}]'`,
 		Action: unregisterRoutes,
 		Flags:  flags,
 	},
@@ -53,6 +57,7 @@ var cliCommands = []cli.Command{
 func main() {
 	app := cli.NewApp()
 	app.Name = "rtr"
+	app.Usage = "A CLI for the Router API server."
 	app.Commands = cliCommands
 	app.CommandNotFound = commandNotFound
 
@@ -61,7 +66,7 @@ func main() {
 }
 
 func registerRoutes(c *cli.Context) {
-	checkFlagsAndArguments(c)
+	checkFlagsAndArguments(c, "register")
 
 	client := routing_api.NewClient(c.String("api"))
 
@@ -79,7 +84,7 @@ func registerRoutes(c *cli.Context) {
 }
 
 func unregisterRoutes(c *cli.Context) {
-	checkFlagsAndArguments(c)
+	checkFlagsAndArguments(c, "unregister")
 
 	client := routing_api.NewClient(c.String("api"))
 
@@ -105,33 +110,34 @@ func buildOauthConfig(c *cli.Context) token_fetcher.OAuthConfig {
 	}
 }
 
-func checkFlagsAndArguments(c *cli.Context) {
+func checkFlagsAndArguments(c *cli.Context, cmd string) {
 	var issues []string
 
 	if c.String("api") == "" {
-		issues = append(issues, "Must provide an API endpoint for the routing-api component.\n")
+		issues = append(issues, "Must provide an API endpoint for the routing-api component.")
 	}
 
 	if c.String("oauth-name") == "" {
-		issues = append(issues, "Must provide the name of an OAuth client.\n")
+		issues = append(issues, "Must provide the name of an OAuth client.")
 	}
 
 	if c.String("oauth-password") == "" {
-		issues = append(issues, "Must provide an OAuth password/secret.\n")
+		issues = append(issues, "Must provide an OAuth password/secret.")
 	}
 
 	if c.String("oauth-url") == "" {
-		issues = append(issues, "Must provide an URL to the OAuth client.\n")
+		issues = append(issues, "Must provide an URL to the OAuth client.")
 	}
 
 	if c.Int("oauth-port") == 0 {
-		issues = append(issues, "Must provide the port the OAuth client is listening on.\n")
+		issues = append(issues, "Must provide the port the OAuth client is listening on.")
 	}
 
 	if !c.Args().Present() {
-		issues = append(issues, "Must provide routes JSON. \n")
+		issues = append(issues, "Must provide routes JSON.")
 	}
 
+	cli.ShowCommandHelp(c, cmd)
 	if len(issues) > 0 {
 		for _, issue := range issues {
 			fmt.Println(issue)
