@@ -80,7 +80,6 @@ func registerRoutes(c *cli.Context) {
 	var routes []db.Route
 
 	err := json.Unmarshal([]byte(desiredRoutes), &routes)
-
 	if err != nil {
 		fmt.Println("Invalid json format.")
 		os.Exit(3)
@@ -92,7 +91,7 @@ func registerRoutes(c *cli.Context) {
 		os.Exit(3)
 	}
 
-	fmt.Printf("Successfuly created routes: %s", desiredRoutes)
+	fmt.Printf("Successfuly registered routes: %s", desiredRoutes)
 }
 
 func unregisterRoutes(c *cli.Context) {
@@ -103,14 +102,21 @@ func unregisterRoutes(c *cli.Context) {
 	config := buildOauthConfig(c)
 	fetcher := token_fetcher.NewTokenFetcher(&config)
 
+	desiredRoutes := c.Args().First()
 	var routes []db.Route
-	_ = json.Unmarshal([]byte(c.Args().First()), &routes)
+	err := json.Unmarshal([]byte(desiredRoutes), &routes)
+	if err != nil {
+		fmt.Println("Invalid json format.")
+		os.Exit(3)
+	}
 
-	err := commands.UnRegister(client, fetcher, routes)
+	err = commands.UnRegister(client, fetcher, routes)
 	if err != nil {
 		fmt.Println("route unregistration failed:", err)
 		os.Exit(3)
 	}
+
+	fmt.Printf("Successfuly unregistered routes: %s", desiredRoutes)
 }
 
 func buildOauthConfig(c *cli.Context) token_fetcher.OAuthConfig {
