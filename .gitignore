@@ -5,3 +5,4 @@ rtr
 *.exe
 *.test
 *.prof
+.idea
