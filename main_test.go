@@ -103,12 +103,14 @@ var _ = Describe("Main", func() {
 			)
 
 			session := routeRegistrar(args...)
+
 			Eventually(session).Should(Exit(0))
 			Expect(server.ReceivedRequests()).To(HaveLen(1))
 		})
 
 		It("registers multiple route to the routing api", func() {
-			args := buildArgs("register", `[{"route":"zak.com","ttl":5,"log_guid":"yo"},{"route":"jak.com","port":8,"ip":"11"}]`)
+			routes := `[{"route":"zak.com","port":0,"ip": "","ttl":5,"log_guid":"yo"},{"route":"jak.com","port":8,"ip":"11","ttl":0}]`
+			args := buildArgs("register", routes)
 			server.SetHandler(0,
 				ghttp.CombineHandlers(
 					ghttp.VerifyRequest("POST", "/v1/routes"),
@@ -133,7 +135,9 @@ var _ = Describe("Main", func() {
 			)
 
 			session := routeRegistrar(args...)
+
 			Eventually(session).Should(Exit(0))
+			Expect(string(session.Out.Contents())).To(ContainSubstring("Successfuly created routes: " + routes))
 			Expect(server.ReceivedRequests()).To(HaveLen(1))
 		})
 
@@ -157,13 +161,15 @@ var _ = Describe("Main", func() {
 			)
 
 			session := routeRegistrar(args...)
+
 			Eventually(session).Should(Exit(0))
 			Expect(server.ReceivedRequests()).To(HaveLen(1))
 		})
 
 		It("Requests a token", func() {
-			args := buildArgs("register", "")
+			args := buildArgs("register", "[{}]")
 			session := routeRegistrar(args...)
+
 			Eventually(session).Should(Exit(0))
 			Expect(authServer.ReceivedRequests()).To(HaveLen(1))
 			Expect(server.ReceivedRequests()).To(HaveLen(1))
@@ -176,7 +182,7 @@ var _ = Describe("Main", func() {
 				"-api", "some-server-name",
 				"-oauth-name", "some-name",
 				"-oauth-password", "some-password",
-				"-oauth-url", "some.oauth.url",
+				"-oauth-url", "http://some.oauth.url",
 				"-oauth-port", "666",
 			}
 		})
@@ -186,7 +192,7 @@ var _ = Describe("Main", func() {
 				flags = []string{
 					"-oauth-name", "some-name",
 					"-oauth-password", "some-password",
-					"-oauth-url", "some.oauth.url",
+					"-oauth-url", "http://some.oauth.url",
 					"-oauth-port", "666",
 				}
 			})
@@ -203,6 +209,7 @@ var _ = Describe("Main", func() {
 		Context("when no flags are given", func() {
 			It("tells you everything you did wrong", func() {
 				session := routeRegistrar("register")
+
 				Eventually(session).Should(Exit(1))
 				contents := session.Out.Contents()
 				Expect(contents).To(ContainSubstring("Must provide an API endpoint for the routing-api component.\n"))
@@ -215,18 +222,21 @@ var _ = Describe("Main", func() {
 
 		It("checks for a valid command", func() {
 			session := routeRegistrar("not-a-command")
+
 			Eventually(session).Should(Exit(1))
 			Eventually(session).Should(Say("Not a valid command: not-a-command"))
 		})
 
 		It("outputs help info for a valid command", func() {
 			session := routeRegistrar("register")
+
 			Eventually(session).Should(Exit(1))
 			Eventually(session).Should(Say("command register"))
 		})
 
 		It("outputs help info for a valid command", func() {
 			session := routeRegistrar("unregister")
+
 			Eventually(session).Should(Exit(1))
 			Eventually(session).Should(Say("command unregister"))
 		})
@@ -235,22 +245,36 @@ var _ = Describe("Main", func() {
 			args := []string{"register"}
 			args = append(args, flags...)
 			session := routeRegistrar(args...)
+
 			Eventually(session).Should(Exit(1))
 			Eventually(session).Should(Say("Must provide routes JSON."))
 		})
 
-		It("shows the error if registration fails", func() {
-			args := buildArgs("register", "")
+		It("fails if the request has invalid json", func() {
+			args := buildArgs("register", `[{"kind":"of","valid":"json}]`)
+			args = append(args, flags...)
 			session := routeRegistrar(args...)
+
 			Eventually(session).Should(Exit(3))
-			Eventually(session).Should(Say("route registration failed:"))
+			Eventually(session).Should(Say("Invalid json format."))
 		})
 
 		It("shows the error if unregistration fails", func() {
 			args := buildArgs("unregister", "")
 			session := routeRegistrar(args...)
+
 			Eventually(session).Should(Exit(3))
 			Eventually(session).Should(Say("route unregistration failed:"))
+		})
+
+		Context("register", func() {
+			It("shows the error if registration fails", func() {
+				args := buildArgs("register", "[{}]")
+				session := routeRegistrar(args...)
+
+				Eventually(session).Should(Exit(3))
+				Eventually(session).Should(Say("route registration failed:"))
+			})
 		})
 	})
 })

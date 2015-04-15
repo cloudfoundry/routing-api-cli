@@ -55,6 +55,7 @@ var cliCommands = []cli.Command{
 }
 
 func main() {
+	fmt.Println()
 	app := cli.NewApp()
 	app.Name = "rtr"
 	app.Usage = "A CLI for the Router API server."
@@ -75,14 +76,23 @@ func registerRoutes(c *cli.Context) {
 	config := buildOauthConfig(c)
 	fetcher := token_fetcher.NewTokenFetcher(&config)
 
+	desiredRoutes := c.Args().First()
 	var routes []db.Route
-	_ = json.Unmarshal([]byte(c.Args().First()), &routes)
 
-	err := commands.Register(client, fetcher, routes)
+	err := json.Unmarshal([]byte(desiredRoutes), &routes)
+
+	if err != nil {
+		fmt.Println("Invalid json format.")
+		os.Exit(3)
+	}
+
+	err = commands.Register(client, fetcher, routes)
 	if err != nil {
 		fmt.Println("route registration failed:", err)
 		os.Exit(3)
 	}
+
+	fmt.Printf("Successfuly created routes: %s", desiredRoutes)
 }
 
 func unregisterRoutes(c *cli.Context) {
@@ -139,11 +149,12 @@ func checkFlagsAndArguments(c *cli.Context, cmd string) {
 		issues = append(issues, "Must provide routes JSON.")
 	}
 
-	cli.ShowCommandHelp(c, cmd)
 	if len(issues) > 0 {
 		for _, issue := range issues {
 			fmt.Println(issue)
 		}
+		fmt.Println()
+		cli.ShowCommandHelp(c, cmd)
 		os.Exit(1)
 	}
 }
