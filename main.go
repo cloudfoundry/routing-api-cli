@@ -3,7 +3,10 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"net/url"
 	"os"
+	"strconv"
+	"strings"
 
 	"github.com/cloudfoundry-incubator/routing-api"
 	"github.com/cloudfoundry-incubator/routing-api-cli/commands"
@@ -28,10 +31,6 @@ var flags = []cli.Flag{
 	cli.StringFlag{
 		Name:  "oauth-url",
 		Usage: "URL for OAuth client. (required)",
-	},
-	cli.IntFlag{
-		Name:  "oauth-port",
-		Usage: "Port the OAuth client is listening on. (required)",
 	},
 }
 
@@ -120,11 +119,26 @@ func unregisterRoutes(c *cli.Context) {
 }
 
 func buildOauthConfig(c *cli.Context) token_fetcher.OAuthConfig {
+	var port int
+	oauthUrl, _ := url.Parse(c.String("oauth-url"))
+	addr := strings.Split(oauthUrl.Host, ":")
+	host := addr[0]
+
+	if len(addr) > 1 {
+		port, _ = strconv.Atoi(addr[1])
+	} else {
+		if strings.ToLower(oauthUrl.Scheme) == "https" {
+			port = 443
+		} else if strings.ToLower(oauthUrl.Scheme) == "http" {
+			port = 80
+		}
+	}
+
 	return token_fetcher.OAuthConfig{
-		TokenEndpoint: c.String("oauth-url"),
+		TokenEndpoint: oauthUrl.Scheme + "://" + host,
 		ClientName:    c.String("oauth-name"),
 		ClientSecret:  c.String("oauth-password"),
-		Port:          c.Int("oauth-port"),
+		Port:          port,
 	}
 }
 
@@ -147,12 +161,13 @@ func checkFlagsAndArguments(c *cli.Context, cmd string) {
 		issues = append(issues, "Must provide an URL to the OAuth client.")
 	}
 
-	if c.Int("oauth-port") == 0 {
-		issues = append(issues, "Must provide the port the OAuth client is listening on.")
-	}
-
 	if !c.Args().Present() {
 		issues = append(issues, "Must provide routes JSON.")
+	}
+
+	_, err := url.Parse(c.String("oauth-url"))
+	if err != nil {
+		issues = append(issues, "Invalid OAuth client URL")
 	}
 
 	if len(issues) > 0 {

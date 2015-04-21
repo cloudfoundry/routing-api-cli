@@ -3,9 +3,7 @@ package main_test
 import (
 	"io/ioutil"
 	"net/http"
-	"net/url"
 	"os/exec"
-	"strings"
 
 	"code.google.com/p/go-uuid/uuid"
 	token_fetcher "github.com/cloudfoundry-incubator/uaa-token-fetcher"
@@ -65,16 +63,11 @@ var _ = Describe("Main", func() {
 				),
 			)
 
-			url, err := url.Parse(authServer.URL())
-			Expect(err).ToNot(HaveOccurred())
-
-			addr := strings.Split(url.Host, ":")
 			flags = []string{
 				"-api", server.URL(),
 				"-oauth-name", "some-name",
 				"-oauth-password", "some-password",
-				"-oauth-url", "http://" + addr[0],
-				"-oauth-port", addr[1],
+				"-oauth-url", authServer.URL(),
 			}
 		})
 
@@ -185,7 +178,6 @@ var _ = Describe("Main", func() {
 				"-oauth-name", "some-name",
 				"-oauth-password", "some-password",
 				"-oauth-url", "http://some.oauth.url",
-				"-oauth-port", "666",
 			}
 		})
 
@@ -195,7 +187,6 @@ var _ = Describe("Main", func() {
 					"-oauth-name", "some-name",
 					"-oauth-password", "some-password",
 					"-oauth-url", "http://some.oauth.url",
-					"-oauth-port", "666",
 				}
 			})
 
@@ -218,7 +209,6 @@ var _ = Describe("Main", func() {
 				Expect(contents).To(ContainSubstring("Must provide the name of an OAuth client.\n"))
 				Expect(contents).To(ContainSubstring("Must provide an OAuth password/secret.\n"))
 				Expect(contents).To(ContainSubstring("Must provide an URL to the OAuth client.\n"))
-				Expect(contents).To(ContainSubstring("Must provide the port the OAuth client is listening on.\n"))
 			})
 		})
 
@@ -264,6 +254,7 @@ var _ = Describe("Main", func() {
 
 			It("shows the error if registration fails", func() {
 				args := buildArgs("register", "[{}]")
+				args = append(args, flags...)
 				session := routeRegistrar(args...)
 
 				Eventually(session).Should(Exit(3))
