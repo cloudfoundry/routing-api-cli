@@ -51,6 +51,12 @@ var cliCommands = []cli.Command{
 		Action: unregisterRoutes,
 		Flags:  flags,
 	},
+	{
+		Name:   "list",
+		Usage:  "Lists the currently registered routes",
+		Action: listRoutes,
+		Flags:  flags,
+	},
 }
 
 func main() {
@@ -128,6 +134,29 @@ func unregisterRoutes(c *cli.Context) {
 	fmt.Printf("Successfuly unregistered routes: %s", desiredRoutes)
 }
 
+func listRoutes(c *cli.Context) {
+	issues := checkFlags(c)
+	issues = append(issues, checkArguments(c, "list")...)
+
+	if len(issues) > 0 {
+		printHelpForCommand(c, issues, "list")
+	}
+
+	client := routing_api.NewClient(c.String("api"))
+
+	config := buildOauthConfig(c)
+	fetcher := token_fetcher.NewTokenFetcher(&config)
+	routes, err := commands.List(client, fetcher)
+	if err != nil {
+		fmt.Println("listing routes failed:", err)
+		os.Exit(3)
+	}
+
+	prettyRoutes, _ := json.Marshal(routes)
+
+	fmt.Printf("Routes: %v", string(prettyRoutes))
+}
+
 func buildOauthConfig(c *cli.Context) token_fetcher.OAuthConfig {
 	var port int
 	oauthUrl, _ := url.Parse(c.String("oauth-url"))
@@ -188,6 +217,10 @@ func checkArguments(c *cli.Context, cmd string) []string {
 			issues = append(issues, "Unexpected arguments.")
 		} else if len(c.Args()) < 1 {
 			issues = append(issues, "Must provide routes JSON.")
+		}
+	case "list":
+		if len(c.Args()) > 0 {
+			issues = append(issues, "Unexpected arguments.")
 		}
 	}
 

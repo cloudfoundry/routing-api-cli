@@ -1,11 +1,13 @@
 package main_test
 
 import (
+	"encoding/json"
 	"io/ioutil"
 	"net/http"
 	"os/exec"
 
 	"code.google.com/p/go-uuid/uuid"
+	"github.com/cloudfoundry-incubator/routing-api/db"
 	token_fetcher "github.com/cloudfoundry-incubator/uaa-token-fetcher"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -162,6 +164,30 @@ var _ = Describe("Main", func() {
 			Expect(server.ReceivedRequests()).To(HaveLen(1))
 		})
 
+		It("Lists the routes", func() {
+			routes := []db.Route{
+				{Route: "llama.example.com", Port: 0, IP: "", TTL: 5, LogGuid: "yo"},
+				{Route: "example.com", Port: 8, IP: "11", TTL: 0},
+			}
+			command := buildCommand("list", flags, []string{})
+
+			server.SetHandler(0,
+				ghttp.CombineHandlers(
+					ghttp.VerifyRequest("GET", "/v1/routes"),
+					ghttp.RespondWithJSONEncoded(http.StatusOK, routes),
+				),
+			)
+
+			session := routeRegistrar(command...)
+
+			expectedRoutes, err := json.Marshal(routes)
+			Expect(err).ToNot(HaveOccurred())
+
+			Eventually(session).Should(Exit(0))
+			Expect(string(session.Out.Contents())).To(ContainSubstring("Routes: " + string(expectedRoutes)))
+			Expect(server.ReceivedRequests()).To(HaveLen(1))
+		})
+
 		It("Requests a token", func() {
 			command := buildCommand("register", flags, []string{"[{}]"})
 			session := routeRegistrar(command...)
@@ -299,6 +325,24 @@ var _ = Describe("Main", func() {
 
 				Eventually(session).Should(Exit(3))
 				Eventually(session).Should(Say("route unregistration failed:"))
+			})
+		})
+
+		Context("list", func() {
+			It("fails if there are unexpected arguments", func() {
+				command := buildCommand("list", flags, []string{"ice cream"})
+				session := routeRegistrar(command...)
+
+				Eventually(session).Should(Exit(1))
+				Eventually(session).Should(Say("Unexpected arguments."))
+			})
+
+			It("shows the error if listing routes fails", func() {
+				command := buildCommand("list", flags, []string{})
+				session := routeRegistrar(command...)
+
+				Eventually(session).Should(Exit(3))
+				Eventually(session).Should(Say("listing routes failed:"))
 			})
 		})
 	})
