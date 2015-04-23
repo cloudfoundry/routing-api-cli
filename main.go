@@ -68,7 +68,12 @@ func main() {
 }
 
 func registerRoutes(c *cli.Context) {
-	checkFlagsAndArguments(c, "register")
+	issues := checkFlags(c)
+	issues = append(issues, checkArguments(c, "register")...)
+
+	if len(issues) > 0 {
+		printHelpForCommand(c, issues, "register")
+	}
 
 	client := routing_api.NewClient(c.String("api"))
 
@@ -94,7 +99,12 @@ func registerRoutes(c *cli.Context) {
 }
 
 func unregisterRoutes(c *cli.Context) {
-	checkFlagsAndArguments(c, "unregister")
+	issues := checkFlags(c)
+	issues = append(issues, checkArguments(c, "unregister")...)
+
+	if len(issues) > 0 {
+		printHelpForCommand(c, issues, "unregister")
+	}
 
 	client := routing_api.NewClient(c.String("api"))
 
@@ -142,7 +152,7 @@ func buildOauthConfig(c *cli.Context) token_fetcher.OAuthConfig {
 	}
 }
 
-func checkFlagsAndArguments(c *cli.Context, cmd string) {
+func checkFlags(c *cli.Context) []string {
 	var issues []string
 
 	if c.String("api") == "" {
@@ -161,23 +171,36 @@ func checkFlagsAndArguments(c *cli.Context, cmd string) {
 		issues = append(issues, "Must provide an URL to the OAuth client.")
 	}
 
-	if !c.Args().Present() {
-		issues = append(issues, "Must provide routes JSON.")
-	}
-
 	_, err := url.Parse(c.String("oauth-url"))
 	if err != nil {
 		issues = append(issues, "Invalid OAuth client URL")
 	}
 
-	if len(issues) > 0 {
-		for _, issue := range issues {
-			fmt.Println(issue)
+	return issues
+}
+
+func checkArguments(c *cli.Context, cmd string) []string {
+	var issues []string
+
+	switch cmd {
+	case "register", "unregister":
+		if len(c.Args()) > 1 {
+			issues = append(issues, "Unexpected arguments.")
+		} else if len(c.Args()) < 1 {
+			issues = append(issues, "Must provide routes JSON.")
 		}
-		fmt.Println()
-		cli.ShowCommandHelp(c, cmd)
-		os.Exit(1)
 	}
+
+	return issues
+}
+
+func printHelpForCommand(c *cli.Context, issues []string, cmd string) {
+	for _, issue := range issues {
+		fmt.Println(issue)
+	}
+	fmt.Println()
+	cli.ShowCommandHelp(c, cmd)
+	os.Exit(1)
 }
 
 func commandNotFound(c *cli.Context, cmd string) {

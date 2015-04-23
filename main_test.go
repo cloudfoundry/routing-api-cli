@@ -19,10 +19,11 @@ var _ = Describe("Main", func() {
 		flags []string
 	)
 
-	var buildArgs = func(cmd string, json ...string) []string {
-		args := []string{cmd}
-		args = append(args, flags...)
-		return append(args, json...)
+	var buildCommand = func(cmd string, flags []string, args []string) []string {
+		command := []string{cmd}
+		command = append(command, flags...)
+		command = append(command, args...)
+		return command
 	}
 
 	Context("Given reasonable arguments", func() {
@@ -77,7 +78,7 @@ var _ = Describe("Main", func() {
 		})
 
 		It("registers a route to the routing api", func() {
-			args := buildArgs("register", `[{"route":"zak.com","port":3,"ip":"4"}]`)
+			command := buildCommand("register", flags, []string{`[{"route":"zak.com","port":3,"ip":"4"}]`})
 
 			server.SetHandler(0,
 				ghttp.CombineHandlers(
@@ -95,15 +96,15 @@ var _ = Describe("Main", func() {
 				),
 			)
 
-			session := routeRegistrar(args...)
+			session := routeRegistrar(command...)
 
 			Eventually(session).Should(Exit(0))
 			Expect(server.ReceivedRequests()).To(HaveLen(1))
 		})
 
-		It("registers multiple route to the routing api", func() {
+		It("registers multiple routes to the routing api", func() {
 			routes := `[{"route":"zak.com","port":0,"ip": "","ttl":5,"log_guid":"yo"},{"route":"jak.com","port":8,"ip":"11","ttl":0}]`
-			args := buildArgs("register", routes)
+			command := buildCommand("register", flags, []string{routes})
 			server.SetHandler(0,
 				ghttp.CombineHandlers(
 					ghttp.VerifyRequest("POST", "/v1/routes"),
@@ -127,7 +128,7 @@ var _ = Describe("Main", func() {
 				),
 			)
 
-			session := routeRegistrar(args...)
+			session := routeRegistrar(command...)
 
 			Eventually(session).Should(Exit(0))
 			Expect(string(session.Out.Contents())).To(ContainSubstring("Successfuly registered routes: " + routes))
@@ -136,7 +137,7 @@ var _ = Describe("Main", func() {
 
 		It("Unregisters a route to the routing api", func() {
 			routes := `[{"route":"zak.com","ttl":5,"log_guid":"yo"}]`
-			args := buildArgs("unregister", routes)
+			command := buildCommand("unregister", flags, []string{routes})
 
 			server.SetHandler(0,
 				ghttp.CombineHandlers(
@@ -154,7 +155,7 @@ var _ = Describe("Main", func() {
 				),
 			)
 
-			session := routeRegistrar(args...)
+			session := routeRegistrar(command...)
 
 			Eventually(session).Should(Exit(0))
 			Expect(string(session.Out.Contents())).To(ContainSubstring("Successfuly unregistered routes: " + routes))
@@ -162,8 +163,8 @@ var _ = Describe("Main", func() {
 		})
 
 		It("Requests a token", func() {
-			args := buildArgs("register", "[{}]")
-			session := routeRegistrar(args...)
+			command := buildCommand("register", flags, []string{"[{}]"})
+			session := routeRegistrar(command...)
 
 			Eventually(session).Should(Exit(0))
 			Expect(authServer.ReceivedRequests()).To(HaveLen(1))
@@ -191,8 +192,8 @@ var _ = Describe("Main", func() {
 			})
 
 			It("checks for the presence of api", func() {
-				args := buildArgs("register", "")
-				session := routeRegistrar(args...)
+				command := buildCommand("register", []string{}, []string{})
+				session := routeRegistrar(command...)
 
 				Eventually(session).Should(Exit(1))
 				Eventually(session).Should(Say("Must provide an API endpoint for the routing-api component.\n"))
@@ -233,29 +234,34 @@ var _ = Describe("Main", func() {
 			Eventually(session).Should(Say("command unregister"))
 		})
 
-		It("checks for the presence of the route json", func() {
-			args := []string{"register"}
-			args = append(args, flags...)
-			session := routeRegistrar(args...)
-
-			Eventually(session).Should(Exit(1))
-			Eventually(session).Should(Say("Must provide routes JSON."))
-		})
-
 		Context("register", func() {
+			It("checks for the presence of the route json", func() {
+				command := buildCommand("register", flags, []string{})
+				session := routeRegistrar(command...)
+
+				Eventually(session).Should(Exit(1))
+				Eventually(session).Should(Say("Must provide routes JSON."))
+			})
+
 			It("fails if the request has invalid json", func() {
-				args := buildArgs("register", `[{"kind":"of","valid":"json}]`)
-				args = append(args, flags...)
-				session := routeRegistrar(args...)
+				command := buildCommand("register", flags, []string{`[{"kind":"of","valid":"json}]`})
+				session := routeRegistrar(command...)
 
 				Eventually(session).Should(Exit(3))
 				Eventually(session).Should(Say("Invalid json format."))
 			})
 
+			It("fails if there are unexpected arguments", func() {
+				command := buildCommand("register", flags, []string{`[{"kind":"of","valid":"json}]`, "ice cream"})
+				session := routeRegistrar(command...)
+
+				Eventually(session).Should(Exit(1))
+				Eventually(session).Should(Say("Unexpected arguments."))
+			})
+
 			It("shows the error if registration fails", func() {
-				args := buildArgs("register", "[{}]")
-				args = append(args, flags...)
-				session := routeRegistrar(args...)
+				command := buildCommand("register", flags, []string{"[{}]"})
+				session := routeRegistrar(command...)
 
 				Eventually(session).Should(Exit(3))
 				Eventually(session).Should(Say("route registration failed:"))
@@ -263,18 +269,33 @@ var _ = Describe("Main", func() {
 		})
 
 		Context("unregister", func() {
+			It("checks for the presence of the route json", func() {
+				command := buildCommand("unregister", flags, []string{})
+				session := routeRegistrar(command...)
+
+				Eventually(session).Should(Exit(1))
+				Eventually(session).Should(Say("Must provide routes JSON."))
+			})
+
 			It("fails if the unregister request has invalid json", func() {
-				args := buildArgs("unregister", `[{"kind":"of","valid":"json}]`)
-				args = append(args, flags...)
-				session := routeRegistrar(args...)
+				command := buildCommand("unregister", flags, []string{`[{"kind":"of","valid":"json}]`})
+				session := routeRegistrar(command...)
 
 				Eventually(session).Should(Exit(3))
 				Eventually(session).Should(Say("Invalid json format."))
 			})
 
+			It("fails if there are unexpected arguments", func() {
+				command := buildCommand("unregister", flags, []string{`[{"kind":"of","valid":"json}]`, "ice cream"})
+				session := routeRegistrar(command...)
+
+				Eventually(session).Should(Exit(1))
+				Eventually(session).Should(Say("Unexpected arguments."))
+			})
+
 			It("shows the error if unregistration fails", func() {
-				args := buildArgs("unregister", "[{}]")
-				session := routeRegistrar(args...)
+				command := buildCommand("unregister", flags, []string{"[{}]"})
+				session := routeRegistrar(command...)
 
 				Eventually(session).Should(Exit(3))
 				Eventually(session).Should(Say("route unregistration failed:"))
