@@ -47,7 +47,7 @@ var cliCommands = []cli.Command{
 		Name:  "unregister",
 		Usage: "Unregisters routes with the routing-api",
 		Description: `Routes must be specified in JSON format, like so:
-'[{"route":"foo.com", "port":12345, "ip":"1.2.3.4", "ttl":5, "log_guid":"log-guid"}]'`,
+'[{"route":"foo.com", "port":12345, "ip":"1.2.3.4"]'`,
 		Action: unregisterRoutes,
 		Flags:  flags,
 	},
