@@ -154,7 +154,7 @@ func listRoutes(c *cli.Context) {
 
 	prettyRoutes, _ := json.Marshal(routes)
 
-	fmt.Printf("Routes: %v", string(prettyRoutes))
+	fmt.Printf("%v", string(prettyRoutes))
 }
 
 func buildOauthConfig(c *cli.Context) token_fetcher.OAuthConfig {

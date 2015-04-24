@@ -184,7 +184,7 @@ var _ = Describe("Main", func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			Eventually(session).Should(Exit(0))
-			Expect(string(session.Out.Contents())).To(ContainSubstring("Routes: " + string(expectedRoutes)))
+			Expect(string(session.Out.Contents())).To(ContainSubstring(string(expectedRoutes)))
 			Expect(server.ReceivedRequests()).To(HaveLen(1))
 		})
 
