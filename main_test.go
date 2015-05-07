@@ -133,7 +133,7 @@ var _ = Describe("Main", func() {
 			session := routeRegistrar(command...)
 
 			Eventually(session).Should(Exit(0))
-			Expect(string(session.Out.Contents())).To(ContainSubstring("Successfuly registered routes: " + routes))
+			Expect(string(session.Out.Contents())).To(ContainSubstring("Successfully registered routes: " + routes))
 			Expect(server.ReceivedRequests()).To(HaveLen(1))
 		})
 
@@ -160,7 +160,7 @@ var _ = Describe("Main", func() {
 			session := routeRegistrar(command...)
 
 			Eventually(session).Should(Exit(0))
-			Expect(string(session.Out.Contents())).To(ContainSubstring("Successfuly unregistered routes: " + routes))
+			Expect(string(session.Out.Contents())).To(ContainSubstring("Successfully unregistered routes: " + routes))
 			Expect(server.ReceivedRequests()).To(HaveLen(1))
 		})
 

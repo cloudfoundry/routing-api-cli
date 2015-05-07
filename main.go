@@ -101,7 +101,7 @@ func registerRoutes(c *cli.Context) {
 		os.Exit(3)
 	}
 
-	fmt.Printf("Successfuly registered routes: %s", desiredRoutes)
+	fmt.Printf("Successfully registered routes: %s", desiredRoutes)
 }
 
 func unregisterRoutes(c *cli.Context) {
@@ -131,7 +131,7 @@ func unregisterRoutes(c *cli.Context) {
 		os.Exit(3)
 	}
 
-	fmt.Printf("Successfuly unregistered routes: %s", desiredRoutes)
+	fmt.Printf("Successfully unregistered routes: %s", desiredRoutes)
 }
 
 func listRoutes(c *cli.Context) {
