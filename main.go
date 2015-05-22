@@ -68,6 +68,7 @@ func main() {
 	app.Authors = authors
 	app.Commands = cliCommands
 	app.CommandNotFound = commandNotFound
+	app.Version = "0.0.5"
 
 	app.Run(os.Args)
 	os.Exit(0)
