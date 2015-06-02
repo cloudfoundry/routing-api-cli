@@ -62,16 +62,21 @@ var cliCommands = []cli.Command{
 	},
 }
 
+var environmentVariableHelp = `ENVIRONMENT VARIABLES:
+   RTR_TRACE=true	Print API request diagnostics to stdout`
+
 func main() {
 	fmt.Println()
 	app := cli.NewApp()
 	app.Name = "rtr"
 	app.Usage = "A CLI for the Router API server."
-	authors := []cli.Author{cli.Author{Name: "Cloud Foundry Runtime Team", Email: "vcap-dev@cloudfoundry.org"}}
+	authors := []cli.Author{cli.Author{Name: "Cloud Foundry Runtime Team", Email: "cf-dev@lists.cloudfoundry.org"}}
 	app.Authors = authors
 	app.Commands = cliCommands
 	app.CommandNotFound = commandNotFound
-	app.Version = "0.0.5"
+	app.Version = "0.0.6"
+
+	cli.AppHelpTemplate = cli.AppHelpTemplate + environmentVariableHelp
 
 	trace.NewLogger(os.Getenv(RTR_TRACE))
 

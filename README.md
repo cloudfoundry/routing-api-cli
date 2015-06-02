@@ -41,6 +41,14 @@ rtr register [args] [routes]
 rtr unregister [args] [routes]
 ```
 
+### Tracing Requests and Responses
+
+By specifying the environment variable `RTR_TRACE=true`, `rtr` will output the HTTP requests and responses that it makes and receives.
+```bash
+export RTR_TRACE=true
+rtr list [args]
+```
+
 Notes:
 - Route "ttl" definition is ignored for unregister
 - CLI will appear successful when unregistering routes that do not exist
