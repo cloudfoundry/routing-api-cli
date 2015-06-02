@@ -1,6 +1,6 @@
 {
 	"ImportPath": "github.com/cloudfoundry-incubator/routing-api-cli",
-	"GoVersion": "go1.4.1",
+	"GoVersion": "go1.4.2",
 	"Deps": [
 		{
 			"ImportPath": "code.google.com/p/go-uuid/uuid",
@@ -17,7 +17,7 @@
 		},
 		{
 			"ImportPath": "github.com/cloudfoundry-incubator/routing-api",
-			"Rev": "581e4fdba87c6f929fb18f01c53116c55d1bb9a3"
+			"Rev": "85a7cfcf33cc79b82e3d574c40ff3caa471a78ac"
 		},
 		{
 			"ImportPath": "github.com/cloudfoundry-incubator/uaa-token-fetcher",
@@ -38,7 +38,7 @@
 		},
 		{
 			"ImportPath": "github.com/coreos/go-etcd/etcd",
-			"Comment": "v0.2.0-rc1-130-g6aa2da5",
+			"Comment": "v0.4.6",
 			"Rev": "6aa2da5a7a905609c93036b9307185a04a5a84a5"
 		},
 		{
