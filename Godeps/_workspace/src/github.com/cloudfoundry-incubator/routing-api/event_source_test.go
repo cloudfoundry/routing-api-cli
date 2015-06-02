@@ -8,9 +8,9 @@ import (
 	"github.com/cloudfoundry-incubator/routing-api"
 	"github.com/cloudfoundry-incubator/routing-api/db"
 	"github.com/cloudfoundry-incubator/routing-api/fake_routing_api"
-	"github.com/cloudfoundry-incubator/routing-api/trace"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	trace "github.com/pivotal-cf-experimental/trace-logger"
 	"github.com/vito/go-sse/sse"
 	"io/ioutil"
 )

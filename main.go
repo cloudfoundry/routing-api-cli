@@ -13,8 +13,10 @@ import (
 	"github.com/cloudfoundry-incubator/routing-api/db"
 	token_fetcher "github.com/cloudfoundry-incubator/uaa-token-fetcher"
 	"github.com/codegangsta/cli"
-	"github.com/cloudfoundry-incubator/routing-api/trace"
+	trace "github.com/pivotal-cf-experimental/trace-logger"
 )
+
+const RTR_TRACE = "RTR_TRACE"
 
 var flags = []cli.Flag{
 	cli.StringFlag{
@@ -71,7 +73,7 @@ func main() {
 	app.CommandNotFound = commandNotFound
 	app.Version = "0.0.5"
 
-	trace.NewLogger(os.Getenv("RTR_TRACE"))
+	trace.NewLogger(os.Getenv(RTR_TRACE))
 
 	app.Run(os.Args)
 	os.Exit(0)

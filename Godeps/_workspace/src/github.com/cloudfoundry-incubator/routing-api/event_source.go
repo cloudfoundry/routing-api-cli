@@ -4,9 +4,8 @@ import (
 	"encoding/json"
 
 	"github.com/cloudfoundry-incubator/routing-api/db"
-	"github.com/cloudfoundry-incubator/routing-api/trace"
+	trace "github.com/pivotal-cf-experimental/trace-logger"
 	"github.com/vito/go-sse/sse"
-	"time"
 )
 
 type EventSource interface {
@@ -40,7 +39,7 @@ func (e *eventSource) Next() (Event, error) {
 		return Event{}, err
 	}
 
-	dumpSSEEvent(rawEvent)
+	trace.DumpJSON("EVENT", rawEvent)
 
 	event, err := convertRawEvent(rawEvent)
 	if err != nil {
@@ -68,13 +67,4 @@ func convertRawEvent(event sse.Event) (Event, error) {
 	}
 
 	return Event{Action: event.Name, Route: route}, nil
-}
-
-func dumpSSEEvent(event sse.Event) {
-	eventJson, err := json.Marshal(event)
-	if err != nil {
-		trace.Logger.Printf("Error dumping event\n%s\n", err)
-	} else {
-		trace.Logger.Printf("\n%s [%s]\n%s\n", "EVENT:", time.Now().Format(time.RFC3339), trace.Sanitize(string(eventJson)))
-	}
 }

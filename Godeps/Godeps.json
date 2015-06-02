@@ -1,6 +1,9 @@
 {
 	"ImportPath": "github.com/cloudfoundry-incubator/routing-api-cli",
 	"GoVersion": "go1.4.2",
+	"Packages": [
+		"./..."
+	],
 	"Deps": [
 		{
 			"ImportPath": "code.google.com/p/go-uuid/uuid",
@@ -17,11 +20,11 @@
 		},
 		{
 			"ImportPath": "github.com/cloudfoundry-incubator/routing-api",
-			"Rev": "85a7cfcf33cc79b82e3d574c40ff3caa471a78ac"
+			"Rev": "6a368dd27af0763c730df2c574cb20010b622d38"
 		},
 		{
 			"ImportPath": "github.com/cloudfoundry-incubator/uaa-token-fetcher",
-			"Rev": "d984db92b74f6a223e6ff2fb028bf379f0fb1a80"
+			"Rev": "4f89b811967b940011e157d88c80dbd96a561145"
 		},
 		{
 			"ImportPath": "github.com/cloudfoundry/gunk/workpool",
@@ -54,6 +57,10 @@
 			"ImportPath": "github.com/onsi/gomega",
 			"Comment": "v1.0-33-ge7b2cd9",
 			"Rev": "e7b2cd96b5633fbc5f0c221159a5c1e85323f770"
+		},
+		{
+			"ImportPath": "github.com/pivotal-cf-experimental/trace-logger",
+			"Rev": "db7feda4944cc58be58a6769fd5ee81a279e5daf"
 		},
 		{
 			"ImportPath": "github.com/tedsuo/rata",

@@ -9,10 +9,9 @@ import (
 
 	"github.com/cloudfoundry-incubator/cf_http"
 	"github.com/cloudfoundry-incubator/routing-api/db"
-	"github.com/cloudfoundry-incubator/routing-api/trace"
+	trace "github.com/pivotal-cf-experimental/trace-logger"
 	"github.com/tedsuo/rata"
 	"github.com/vito/go-sse/sse"
-	"net/http/httputil"
 )
 
 //go:generate counterfeiter -o fake_routing_api/fake_client.go . Client
@@ -68,7 +67,7 @@ func (c *client) SubscribeToEvents() (EventSource, error) {
 			panic(err) // totally shouldn't happen
 		}
 
-		dumpRequest(request)
+		trace.DumpRequest(request)
 		return request
 	})
 	if err != nil {
@@ -106,7 +105,7 @@ func (c *client) doRequest(requestName string, params rata.Params, queryParams u
 }
 
 func (c *client) do(req *http.Request, response interface{}) error {
-	dumpRequest(req)
+	trace.DumpRequest(req)
 
 	res, err := c.httpClient.Do(req)
 	if err != nil {
@@ -114,7 +113,7 @@ func (c *client) do(req *http.Request, response interface{}) error {
 	}
 	defer res.Body.Close()
 
-	dumpResponse(res)
+	trace.DumpResponse(res)
 
 	if res.StatusCode > 299 {
 		errResponse := Error{}
@@ -127,22 +126,4 @@ func (c *client) do(req *http.Request, response interface{}) error {
 	}
 
 	return nil
-}
-
-func dumpRequest(req *http.Request) {
-	dumpedRequest, err := httputil.DumpRequest(req, true)
-	if err != nil {
-		trace.Logger.Printf("Error dumping request\n%s\n", err)
-	} else {
-		trace.Logger.Printf("\n%s [%s]\n%s\n", "REQUEST:", time.Now().Format(time.RFC3339), trace.Sanitize(string(dumpedRequest)))
-	}
-}
-
-func dumpResponse(resp *http.Response) {
-	dumpedResponse, err := httputil.DumpResponse(resp, true)
-	if err != nil {
-		trace.Logger.Printf("Error dumping response\n%s\n", err)
-	} else {
-		trace.Logger.Printf("\n%s [%s]\n%s\n", "RESPONSE:", time.Now().Format(time.RFC3339), trace.Sanitize(string(dumpedResponse)))
-	}
 }

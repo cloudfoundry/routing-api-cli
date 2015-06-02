@@ -1,14 +1,16 @@
 package trace
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"log"
+	"net/http"
+	"net/http/httputil"
 	"os"
 	"regexp"
+	"time"
 )
-
-const RTR_TRACE = "RTR_TRACE"
 
 type Printer interface {
 	Print(v ...interface{})
@@ -33,9 +35,8 @@ func SetStdout(s io.Writer) {
 	stdOut = s
 }
 
-func NewLogger(rtr_trace string) Printer {
-
-	if rtr_trace == "true" {
+func NewLogger(env_setting string) Printer {
+	if env_setting == "true" {
 		Logger = newStdoutLogger()
 	} else {
 		Logger = new(nullLogger)
@@ -70,4 +71,31 @@ func Sanitize(input string) (sanitized string) {
 
 func PRIVATE_DATA_PLACEHOLDER() string {
 	return "[PRIVATE DATA HIDDEN]"
+}
+
+func DumpRequest(req *http.Request) {
+	dumpedRequest, err := httputil.DumpRequest(req, true)
+	if err != nil {
+		Logger.Printf("Error dumping request\n%s\n", err)
+	} else {
+		Logger.Printf("\n%s [%s]\n%s\n", "REQUEST:", time.Now().Format(time.RFC3339), Sanitize(string(dumpedRequest)))
+	}
+}
+
+func DumpResponse(resp *http.Response) {
+	dumpedResponse, err := httputil.DumpResponse(resp, true)
+	if err != nil {
+		Logger.Printf("Error dumping response\n%s\n", err)
+	} else {
+		Logger.Printf("\n%s [%s]\n%s\n", "RESPONSE:", time.Now().Format(time.RFC3339), Sanitize(string(dumpedResponse)))
+	}
+}
+
+func DumpJSON(label string, data interface{}) {
+	jsonData, err := json.Marshal(data)
+	if err != nil {
+		Logger.Printf("Error dumping json object\n%s\n", err)
+	} else {
+		Logger.Printf("\n%s [%s]\n%s\n", label+":", time.Now().Format(time.RFC3339), Sanitize(string(jsonData)))
+	}
 }

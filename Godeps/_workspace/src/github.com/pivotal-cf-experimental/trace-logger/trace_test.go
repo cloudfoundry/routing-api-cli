@@ -4,58 +4,135 @@ import (
 	"bytes"
 	"io/ioutil"
 
-	. "github.com/cloudfoundry-incubator/routing-api/trace"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	. "github.com/pivotal-cf-experimental/trace-logger"
+	"net/http"
+	"strings"
 )
 
 var _ = Describe("trace logger", func() {
-		var (
-			stdout *bytes.Buffer
-		)
+	var (
+		stdout *bytes.Buffer
+	)
 
+	BeforeEach(func() {
+		stdout = bytes.NewBuffer([]byte{})
+		SetStdout(stdout)
+	})
+
+	It("assumes it should write to stdout", func() {
+		logger := NewLogger("true")
+		logger.Print("hello whirled")
+
+		result, err := ioutil.ReadAll(stdout)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(result).To(ContainSubstring("hello whirled"))
+	})
+
+	It("prints to nothing when given false", func() {
+		logger := NewLogger("false")
+		logger.Print("hello whirled")
+
+		result, err := ioutil.ReadAll(stdout)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(result).To(BeEmpty())
+	})
+
+	It("prints to nothing when not set", func() {
+		logger := NewLogger("")
+		logger.Print("hello whirled")
+
+		result, err := ioutil.ReadAll(stdout)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(result).To(BeEmpty())
+	})
+
+	It("prints to nothing when set to some invalid value", func() {
+		logger := NewLogger("asdf")
+		logger.Print("hello whirled")
+
+		result, err := ioutil.ReadAll(stdout)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(result).To(BeEmpty())
+	})
+
+	Describe("DumpRequest", func() {
 		BeforeEach(func() {
-			stdout = bytes.NewBuffer([]byte{})
-			SetStdout(stdout)
+			NewLogger("true")
+			req, _ := http.NewRequest("GET", "http://testUrl.com", strings.NewReader("test body"))
+			DumpRequest(req)
 		})
 
-		It("assumes it should write to stdout", func() {
-			logger := NewLogger("true")
-			logger.Print("hello whirled")
-
+		It("dumps the request out to the Printer", func() {
 			result, err := ioutil.ReadAll(stdout)
+
 			Expect(err).ToNot(HaveOccurred())
-			Expect(result).To(ContainSubstring("hello whirled"))
+			Expect(result).To(ContainSubstring("REQUEST:"))
+			Expect(result).To(ContainSubstring("GET"))
+			Expect(result).To(ContainSubstring("testUrl.com"))
+			Expect(result).To(ContainSubstring("test body"))
+		})
+	})
+
+	Describe("DumpResponse", func() {
+		BeforeEach(func() {
+			NewLogger("true")
+
+			resp := &http.Response{StatusCode: http.StatusBadRequest,
+				Body: ioutil.NopCloser(strings.NewReader(`test response`))}
+
+			DumpResponse(resp)
 		})
 
-		It("prints to nothing when given false", func() {
-			logger := NewLogger("false")
-			logger.Print("hello whirled")
-
+		It("dumps the response out to the Printer", func() {
 			result, err := ioutil.ReadAll(stdout)
+
 			Expect(err).ToNot(HaveOccurred())
-			Expect(result).To(BeEmpty())
+			Expect(result).To(ContainSubstring("RESPONSE:"))
+			Expect(result).To(ContainSubstring("400 Bad Request"))
+			Expect(result).To(ContainSubstring("test response"))
+		})
+	})
+
+	Describe("DumpJSON", func() {
+		var data interface{}
+		var label string
+
+		JustBeforeEach(func() {
+			NewLogger("true")
+			DumpJSON(label, data)
 		})
 
-		It("prints to nothing when not set", func() {
-			logger := NewLogger("")
-			logger.Print("hello whirled")
+		Context("when the data can be represented as json", func() {
+			BeforeEach(func() {
+				data = []string{"this", "is", "a test"}
+				label = "JSON"
+			})
 
-			result, err := ioutil.ReadAll(stdout)
-			Expect(err).ToNot(HaveOccurred())
-			Expect(result).To(BeEmpty())
+			It("dumps the response out to the Printer", func() {
+				result, err := ioutil.ReadAll(stdout)
+
+				Expect(err).ToNot(HaveOccurred())
+				Expect(result).To(ContainSubstring("JSON: "))
+				Expect(result).To(ContainSubstring(`["this","is","a test"]`))
+			})
 		})
 
-		It("prints to nothing when set to some invalid value", func() {
-			logger := NewLogger("asdf")
-			logger.Print("hello whirled")
+		Context("when JSON marshall fails", func() {
+			BeforeEach(func() {
+				data = func() {}
+				label = "JSON"
+			})
 
-			result, err := ioutil.ReadAll(stdout)
-			Expect(err).ToNot(HaveOccurred())
-			Expect(result).To(BeEmpty())
+			It("displays an error", func() {
+				result, err := ioutil.ReadAll(stdout)
+
+				Expect(err).ToNot(HaveOccurred())
+				Expect(result).To(ContainSubstring("Error dumping json object"))
+			})
 		})
-
-
+	})
 
 	Describe("Sanitize", func() {
 		It("hides the authorization token header", func() {
@@ -224,4 +301,3 @@ Server: Apache-Coyote/1.1
 		})
 	})
 })
-
