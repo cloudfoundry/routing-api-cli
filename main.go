@@ -13,6 +13,7 @@ import (
 	"github.com/cloudfoundry-incubator/routing-api/db"
 	token_fetcher "github.com/cloudfoundry-incubator/uaa-token-fetcher"
 	"github.com/codegangsta/cli"
+	"github.com/cloudfoundry-incubator/routing-api/trace"
 )
 
 var flags = []cli.Flag{
@@ -69,6 +70,8 @@ func main() {
 	app.Commands = cliCommands
 	app.CommandNotFound = commandNotFound
 	app.Version = "0.0.5"
+
+	trace.NewLogger(os.Getenv("RTR_TRACE"))
 
 	app.Run(os.Args)
 	os.Exit(0)

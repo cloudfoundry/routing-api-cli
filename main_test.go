@@ -14,6 +14,7 @@ import (
 	. "github.com/onsi/gomega/gbytes"
 	. "github.com/onsi/gomega/gexec"
 	"github.com/onsi/gomega/ghttp"
+	"os"
 )
 
 var _ = Describe("Main", func() {
@@ -195,6 +196,70 @@ var _ = Describe("Main", func() {
 			Eventually(session).Should(Exit(0))
 			Expect(authServer.ReceivedRequests()).To(HaveLen(1))
 			Expect(server.ReceivedRequests()).To(HaveLen(1))
+		})
+
+		Context("environment variables", func() {
+			Context("RTR_TRACE", func() {
+				var session *Session
+				BeforeEach(func() {
+					routes := []db.Route{
+						{Route: "llama.example.com", Port: 0, IP: "", TTL: 5, LogGuid: "yo"},
+						{Route: "example.com", Port: 8, IP: "11", TTL: 0},
+					}
+					server.SetHandler(0,
+						ghttp.CombineHandlers(
+							ghttp.VerifyRequest("GET", "/v1/routes"),
+							ghttp.RespondWithJSONEncoded(http.StatusOK, routes),
+						),
+					)
+				})
+
+				JustBeforeEach(func() {
+					command := buildCommand("list", flags, []string{})
+					session = routeRegistrar(command...)
+					Eventually(session).Should(Exit(0))
+				})
+
+				Context("when RTR_TRACE is not set", func() {
+					BeforeEach(func() {
+						os.Unsetenv("RTR_TRACE")
+					})
+
+					It("should not trace the requests made/responses received", func() {
+						Expect(string(session.Out.Contents())).NotTo(ContainSubstring("REQUEST"))
+					})
+				})
+
+				Context("when RTR_TRACE is set to true", func() {
+					BeforeEach(func() {
+						os.Setenv("RTR_TRACE", "true")
+					})
+
+					It("should trace the requests made/responses received", func() {
+						Expect(string(session.Out.Contents())).To(ContainSubstring("REQUEST"))
+					})
+				})
+
+				Context("when RTR_TRACE is set to false", func() {
+					BeforeEach(func() {
+						os.Setenv("RTR_TRACE", "false")
+					})
+
+					It("should not trace the requests made/responses received", func() {
+						Expect(string(session.Out.Contents())).NotTo(ContainSubstring("REQUEST"))
+					})
+				})
+
+				Context("when RTR_TRACE is set to an invalid value", func() {
+					BeforeEach(func() {
+						os.Setenv("RTR_TRACE", "adsf")
+					})
+
+					It("should not trace the requests made/responses received", func() {
+						Expect(string(session.Out.Contents())).NotTo(ContainSubstring("REQUEST"))
+					})
+				})
+			})
 		})
 	})
 
