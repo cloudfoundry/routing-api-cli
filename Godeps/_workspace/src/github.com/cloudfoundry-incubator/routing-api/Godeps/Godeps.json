@@ -22,6 +22,14 @@
 			"Rev": "db1bf7202e706de8d7460c1b54494ac7ab481a59"
 		},
 		{
+			"ImportPath": "github.com/cloudfoundry-incubator/consuladapter",
+			"Rev": "9e61960ef98bf9750c8faa1573e8786aba07561c"
+		},
+		{
+			"ImportPath": "github.com/cloudfoundry-incubator/runtime-schema/maintainer",
+			"Rev": "e86cfed5370257cc26783b3cbc088d9abb04e438"
+		},
+		{
 			"ImportPath": "github.com/cloudfoundry/dropsonde",
 			"Rev": "0afd306c305053e4cf1a90e9b58eb24cb1f126b5"
 		},
@@ -32,16 +40,16 @@
 		},
 		{
 			"ImportPath": "github.com/cloudfoundry/gunk/workpool",
-			"Rev": "de79b69f590594db2b9771018784c55251d5e7e7"
+			"Rev": "1e83496bd55b10dde3ac60f22ab5058eaa4042e0"
 		},
 		{
 			"ImportPath": "github.com/cloudfoundry/storeadapter",
-			"Rev": "dff7a18fad3c03aae624a5ae0bce53d142d72971"
+			"Rev": "776fd8b514e4c7ae50db872e14dc0995ae3721ca"
 		},
 		{
 			"ImportPath": "github.com/coreos/go-etcd/etcd",
-			"Comment": "v0.4.6",
-			"Rev": "6aa2da5a7a905609c93036b9307185a04a5a84a5"
+			"Comment": "v2.0.0-7-g73a8ef7",
+			"Rev": "73a8ef737e8ea002281a28b4cb92a1de121ad4c6"
 		},
 		{
 			"ImportPath": "github.com/dgrijalva/jwt-go",
@@ -51,6 +59,11 @@
 		{
 			"ImportPath": "github.com/gogo/protobuf/proto",
 			"Rev": "bc946d07d1016848dfd2507f90f0859c9471681e"
+		},
+		{
+			"ImportPath": "github.com/hashicorp/consul/api",
+			"Comment": "v0.5.2-33-g0aea1f0",
+			"Rev": "0aea1f06a1662dd392d3c8e8240cb4cc662e2e65"
 		},
 		{
 			"ImportPath": "github.com/nu7hatch/gouuid",
@@ -71,8 +84,16 @@
 			"Rev": "db7feda4944cc58be58a6769fd5ee81a279e5daf"
 		},
 		{
+			"ImportPath": "github.com/pivotal-golang/clock",
+			"Rev": "270608bba0223b4ee5e0ac06f85e7964378f57a3"
+		},
+		{
 			"ImportPath": "github.com/pivotal-golang/lager",
 			"Rev": "09a71f6eb2dcc1c2335e37ceb78a91c6f618d561"
+		},
+		{
+			"ImportPath": "github.com/quipo/statsd",
+			"Rev": "b16c3be8a03e3c39a2d9c669b8f13f8876de61cd"
 		},
 		{
 			"ImportPath": "github.com/tedsuo/ifrit",
