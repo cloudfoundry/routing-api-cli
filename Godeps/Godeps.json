@@ -20,11 +20,15 @@
 		},
 		{
 			"ImportPath": "github.com/cloudfoundry-incubator/routing-api",
-			"Rev": "b9179796ffbef4b42a8653c69cbed31225d56ddb"
+			"Rev": "5bd414a6ba9be877d8c1e82d14e7def8200f80f3"
+		},
+		{
+			"ImportPath": "github.com/cloudfoundry-incubator/trace-logger",
+			"Rev": "24964ef4dbb527a373d4db141cbbd41eb21a56f9"
 		},
 		{
 			"ImportPath": "github.com/cloudfoundry-incubator/uaa-token-fetcher",
-			"Rev": "4f89b811967b940011e157d88c80dbd96a561145"
+			"Rev": "536d9c8d4ddfc124536cfb7462583b3200e3bde1"
 		},
 		{
 			"ImportPath": "github.com/cloudfoundry/gunk/workpool",
@@ -57,10 +61,6 @@
 			"ImportPath": "github.com/onsi/gomega",
 			"Comment": "v1.0-33-ge7b2cd9",
 			"Rev": "e7b2cd96b5633fbc5f0c221159a5c1e85323f770"
-		},
-		{
-			"ImportPath": "github.com/pivotal-cf-experimental/trace-logger",
-			"Rev": "db7feda4944cc58be58a6769fd5ee81a279e5daf"
 		},
 		{
 			"ImportPath": "github.com/tedsuo/rata",

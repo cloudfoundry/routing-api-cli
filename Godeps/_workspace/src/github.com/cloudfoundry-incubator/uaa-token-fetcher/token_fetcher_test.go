@@ -9,11 +9,12 @@ import (
 
 	. "github.com/cloudfoundry-incubator/uaa-token-fetcher"
 
+	"bytes"
+
+	trace "github.com/cloudfoundry-incubator/trace-logger"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/ghttp"
-	trace "github.com/pivotal-cf-experimental/trace-logger"
-	"bytes"
 )
 
 var verifyBody = func(expectedBody string) http.HandlerFunc {

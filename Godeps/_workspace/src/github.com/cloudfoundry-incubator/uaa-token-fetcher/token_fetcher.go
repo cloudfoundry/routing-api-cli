@@ -8,7 +8,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
-	trace "github.com/pivotal-cf-experimental/trace-logger"
+	trace "github.com/cloudfoundry-incubator/trace-logger"
 )
 
 type OAuthConfig struct {

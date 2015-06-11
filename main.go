@@ -11,9 +11,9 @@ import (
 	"github.com/cloudfoundry-incubator/routing-api"
 	"github.com/cloudfoundry-incubator/routing-api-cli/commands"
 	"github.com/cloudfoundry-incubator/routing-api/db"
+	trace "github.com/cloudfoundry-incubator/trace-logger"
 	token_fetcher "github.com/cloudfoundry-incubator/uaa-token-fetcher"
 	"github.com/codegangsta/cli"
-	trace "github.com/pivotal-cf-experimental/trace-logger"
 )
 
 const RTR_TRACE = "RTR_TRACE"
