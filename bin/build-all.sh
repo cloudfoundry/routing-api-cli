@@ -10,5 +10,4 @@ if [ ! -d out ]; then
 fi
 
 GOARCH=amd64 GOOS=linux go build -o rtr && mv rtr $OUTDIR/rtr-linux-amd64
-GOARCH=386 GOOS=linux go build -o rtr && mv rtr $OUTDIR/rtr-linux-386
 GOARCH=amd64 GOOS=darwin go build -o rtr && mv rtr $OUTDIR/rtr-darwin-amd64
