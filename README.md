@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/cloudfoundry-incubator/routing-api-cli.svg)](https://travis-ci.org/cloudfoundry-incubator/routing-api-cli)
+
 # Routing API CLI
 
 The Routing API CLI lets you list, register, and unregister routes with the Cloud Foundry [Routing API](https://github.com/cloudfoundry-incubator/routing-api).
