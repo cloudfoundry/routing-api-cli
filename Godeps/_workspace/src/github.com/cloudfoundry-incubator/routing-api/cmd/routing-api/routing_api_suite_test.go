@@ -5,7 +5,6 @@ import (
 	"net/url"
 	"os"
 
-	"github.com/cloudfoundry-incubator/consuladapter"
 	"github.com/cloudfoundry-incubator/routing-api"
 	"github.com/cloudfoundry-incubator/routing-api/cmd/routing-api/testrunner"
 	"github.com/cloudfoundry/storeadapter"
@@ -13,8 +12,6 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
-	"github.com/tedsuo/ifrit"
-	"github.com/tedsuo/ifrit/ginkgomon"
 
 	"testing"
 	"time"
@@ -25,17 +22,10 @@ var etcdUrl string
 var etcdRunner *etcdstorerunner.ETCDClusterRunner
 var etcdAdapter storeadapter.StoreAdapter
 
-var consulScheme string
-var consulDatacenter string
-var consulRunner *consuladapter.ClusterRunner
-var consulSession *consuladapter.Session
-
 var client routing_api.Client
 var routingAPIBinPath string
 var routingAPIAddress string
 var routingAPIArgs testrunner.Args
-var routingAPIRunner *ginkgomon.Runner
-var routingAPIProcess ifrit.Process
 var routingAPIPort int
 var routingAPIIP string
 var routingAPISystemDomain string
@@ -54,23 +44,10 @@ var _ = SynchronizedBeforeSuite(
 	func(routingAPIBin []byte) {
 		routingAPIBinPath = string(routingAPIBin)
 		SetDefaultEventuallyTimeout(15 * time.Second)
-
-		consulScheme = "http"
-		consulDatacenter = "dc"
-		consulRunner = consuladapter.NewClusterRunner(
-			9001+GinkgoParallelNode()*consuladapter.PortOffsetLength,
-			1,
-			consulScheme,
-		)
-
-		consulRunner.Start()
-		consulRunner.WaitUntilReady()
 	},
 )
 
-var _ = SynchronizedAfterSuite(func() {
-	consulRunner.Stop()
-}, func() {
+var _ = AfterSuite(func() {
 	gexec.CleanupBuildArtifacts()
 })
 
@@ -95,21 +72,17 @@ var _ = BeforeEach(func() {
 	workingDir, _ := os.Getwd()
 
 	routingAPIArgs = testrunner.Args{
-		Port:          routingAPIPort,
-		IP:            routingAPIIP,
-		SystemDomain:  routingAPISystemDomain,
-		ConfigPath:    workingDir + "/../../example_config/example.yml",
-		EtcdCluster:   etcdUrl,
-		DevMode:       true,
-		ConsulCluster: consulRunner.ConsulCluster(),
+		Port:         routingAPIPort,
+		IP:           routingAPIIP,
+		SystemDomain: routingAPISystemDomain,
+		ConfigPath:   workingDir + "/../../example_config/example.yml",
+		EtcdCluster:  etcdUrl,
+		DevMode:      true,
 	}
-	routingAPIRunner = testrunner.New(routingAPIBinPath, routingAPIArgs)
 })
 
 var _ = AfterEach(func() {
 	etcdAdapter.Disconnect()
+	etcdRunner.Reset()
 	etcdRunner.Stop()
-
-	consulRunner.Reset()
-	consulSession = consulRunner.NewSession("a-session")
 })

@@ -25,6 +25,7 @@ var _ = Describe("EventsHandler", func() {
 		token    *fake_token.FakeToken
 		server   *httptest.Server
 		stats    *fake_statsd.FakePartialStatsdClient
+		stopChan chan struct{}
 	)
 
 	BeforeEach(func() {
@@ -32,7 +33,8 @@ var _ = Describe("EventsHandler", func() {
 		database = &fake_db.FakeDB{}
 		logger = lagertest.NewTestLogger("event-handler-test")
 		stats = new(fake_statsd.FakePartialStatsdClient)
-		handler = *handlers.NewEventStreamHandler(token, database, logger, stats)
+		stopChan = make(chan struct{})
+		handler = *handlers.NewEventStreamHandler(token, database, logger, stats, stopChan)
 	})
 
 	AfterEach(func(done Done) {
@@ -186,6 +188,43 @@ var _ = Describe("EventsHandler", func() {
 
 					Expect(err).NotTo(HaveOccurred())
 					Expect(event).To(Equal(expectedEvent))
+				})
+			})
+
+			Context("when the api server is stopped", func() {
+				var cancelChan chan bool
+
+				BeforeEach(func() {
+					resultsChan := make(chan storeadapter.WatchEvent, 1)
+					storeNode := storeadapter.StoreNode{Value: []byte("valuable-string")}
+					resultsChan <- storeadapter.WatchEvent{Type: storeadapter.UpdateEvent, Node: &storeNode}
+
+					cancelChan = make(chan bool)
+					database.WatchRouteChangesReturns(resultsChan, cancelChan, nil)
+				})
+
+				It("returns early", func() {
+					stopChan <- struct{}{}
+					Eventually(cancelChan).Should(Receive())
+					Eventually(eventStreamDone).Should(BeClosed())
+				})
+			})
+
+			Context("when the watch returns an error", func() {
+				var errChan chan error
+
+				BeforeEach(func() {
+					resultsChan := make(chan storeadapter.WatchEvent, 1)
+					storeNode := storeadapter.StoreNode{Value: []byte("valuable-string")}
+					resultsChan <- storeadapter.WatchEvent{Type: storeadapter.UpdateEvent, Node: &storeNode}
+
+					errChan = make(chan error)
+					database.WatchRouteChangesReturns(resultsChan, nil, errChan)
+				})
+
+				It("returns early", func() {
+					errChan <- errors.New("Boom!")
+					Eventually(eventStreamDone).Should(BeClosed())
 				})
 			})
 

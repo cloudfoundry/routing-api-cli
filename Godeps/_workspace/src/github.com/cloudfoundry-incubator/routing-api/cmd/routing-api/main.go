@@ -6,13 +6,11 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"os/signal"
 	"strconv"
-	"syscall"
 	"time"
 
+	"github.com/cactus/go-statsd-client/statsd"
 	"github.com/cloudfoundry-incubator/cf-debug-server"
-	"github.com/cloudfoundry-incubator/consuladapter"
 	"github.com/cloudfoundry-incubator/routing-api"
 	"github.com/cloudfoundry-incubator/routing-api/authentication"
 	"github.com/cloudfoundry-incubator/routing-api/config"
@@ -20,15 +18,13 @@ import (
 	"github.com/cloudfoundry-incubator/routing-api/handlers"
 	"github.com/cloudfoundry-incubator/routing-api/helpers"
 	"github.com/cloudfoundry-incubator/routing-api/metrics"
-	"github.com/cloudfoundry-incubator/runtime-schema/maintainer"
 	"github.com/cloudfoundry/dropsonde"
-	"github.com/pivotal-golang/clock"
 	"github.com/pivotal-golang/lager"
-	"github.com/quipo/statsd"
 
 	cf_lager "github.com/cloudfoundry-incubator/cf-lager"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/grouper"
+	"github.com/tedsuo/ifrit/http_server"
 	"github.com/tedsuo/ifrit/sigmon"
 	"github.com/tedsuo/rata"
 )
@@ -41,7 +37,6 @@ var configPath = flag.String("config", "", "Configuration for routing-api")
 var devMode = flag.Bool("devMode", false, "Disable authentication for easier development iteration")
 var ip = flag.String("ip", "", "The public ip of the routing api")
 var systemDomain = flag.String("systemDomain", "", "System domain that the routing api should register on")
-var consulCluster = flag.String("consulCluster", "", "comma-separated list of consul server URLs (scheme://ip:port)")
 
 func route(f func(w http.ResponseWriter, r *http.Request)) http.Handler {
 	return http.HandlerFunc(f)
@@ -72,32 +67,94 @@ func main() {
 		cf_debug_server.Run(cfg.DebugAddress)
 	}
 
-	maxWorkers := cfg.MaxConcurrentETCDRequests
-	if maxWorkers <= 0 {
-		maxWorkers = DEFAULT_ETCD_WORKERS
-	}
-
-	logger.Info("database", lager.Data{"etcd-addresses": flag.Args()})
-	database, err := db.NewETCD(flag.Args(), maxWorkers)
+	database, err := initializeDatabase(cfg, logger)
 	if err != nil {
-		logger.Error("failed to initialize etcd", err)
+		logger.Error("failed to initialize database", err)
 		os.Exit(1)
 	}
 
 	err = database.Connect()
 	if err != nil {
-		logger.Error("failed to connect to etcd", err)
+		logger.Error("failed to connect to database", err)
 		os.Exit(1)
 	}
 	defer database.Disconnect()
 
+	prefix := "routing_api"
+	statsdClient, err := statsd.NewBufferedClient(cfg.StatsdEndpoint, prefix, cfg.StatsdClientFlushInterval, 512)
+	if err != nil {
+		logger.Error("failed to create a statsd client", err)
+		os.Exit(1)
+	}
+	defer statsdClient.Close()
+
+	stopChan := make(chan struct{})
+	apiServer := constructApiServer(cfg, database, statsdClient, stopChan, logger)
+	stopper := constructStopper(stopChan)
+
+	routerRegister := constructRouteRegister(cfg.LogGuid, database, logger)
+
+	metricsTicker := time.NewTicker(cfg.MetricsReportingInterval)
+	metricsReporter := metrics.NewMetricsReporter(database, statsdClient, metricsTicker)
+
+	members := grouper.Members{
+		{"metrics", metricsReporter},
+		{"api-server", apiServer},
+		{"conn-stopper", stopper},
+		{"route-register", routerRegister},
+	}
+
+	group := grouper.NewOrdered(os.Interrupt, members)
+	process := ifrit.Invoke(sigmon.New(group))
+
+	// This is used by testrunner to signal ready for tests.
+	logger.Info("started", lager.Data{"port": *port})
+
+	errChan := process.Wait()
+	err = <-errChan
+	if err != nil {
+		logger.Error("shutdown-error", err)
+		os.Exit(1)
+	}
+	logger.Info("exited")
+}
+
+func constructStopper(stopChan chan struct{}) ifrit.Runner {
+	return ifrit.RunFunc(func(signals <-chan os.Signal, ready chan<- struct{}) error {
+		close(ready)
+		select {
+		case <-signals:
+			close(stopChan)
+		}
+
+		return nil
+	})
+}
+
+func constructRouteRegister(logGuid string, database db.DB, logger lager.Logger) ifrit.Runner {
+	host := fmt.Sprintf("routing-api.%s", *systemDomain)
+	route := db.Route{
+		Route:   host,
+		Port:    *port,
+		IP:      *ip,
+		TTL:     *maxTTL,
+		LogGuid: logGuid,
+	}
+
+	registerInterval := *maxTTL / 2
+	ticker := time.NewTicker(time.Duration(registerInterval) * time.Second)
+
+	return helpers.NewRouteRegister(database, route, ticker, logger)
+}
+
+func constructApiServer(cfg config.Config, database db.DB, statsdClient statsd.Statter, stopChan chan struct{}, logger lager.Logger) ifrit.Runner {
 	var token authentication.Token
 
 	if *devMode {
 		token = authentication.NullToken{}
 	} else {
 		token = authentication.NewAccessToken(cfg.UAAPublicKey)
-		err = token.CheckPublicToken()
+		err := token.CheckPublicToken()
 		if err != nil {
 			logger.Error("failed to check public token", err)
 			os.Exit(1)
@@ -105,16 +162,8 @@ func main() {
 	}
 
 	validator := handlers.NewValidator()
-
-	prefix := "routing_api."
-	statsdclient := statsd.NewStatsdClient(cfg.StatsdEndpoint, prefix) // make sure you config this yo
-	statsdclient.CreateSocket()
-	interval := cfg.MetricsReportingInterval
-	stats := statsd.NewStatsdBuffer(interval, statsdclient)
-	defer stats.Close()
-
 	routesHandler := handlers.NewRoutesHandler(token, *maxTTL, validator, database, logger)
-	eventStreamHandler := handlers.NewEventStreamHandler(token, database, logger, stats)
+	eventStreamHandler := handlers.NewEventStreamHandler(token, database, logger, statsdClient, stopChan)
 
 	actions := rata.Handlers{
 		"Upsert":      route(routesHandler.Upsert),
@@ -130,76 +179,17 @@ func main() {
 	}
 
 	handler = handlers.LogWrap(handler, logger)
-
-	registerInterval := *maxTTL / 2
-
-	host := fmt.Sprintf("routing-api.%s", *systemDomain)
-	route := db.Route{
-		Route:   host,
-		Port:    *port,
-		IP:      *ip,
-		TTL:     *maxTTL,
-		LogGuid: cfg.LogGuid,
-	}
-
-	ticker := time.NewTicker(time.Duration(registerInterval) * time.Second)
-	quitChan := make(chan bool)
-	go helpers.RegisterRoutingAPI(quitChan, database, route, ticker, logger)
-
-	c := make(chan os.Signal)
-	signal.Notify(c, syscall.SIGTERM, syscall.SIGINT, syscall.SIGUSR1)
-	go func() {
-		<-c
-		logger.Info("Unregistering from etcd")
-
-		quitChan <- true
-		<-quitChan
-
-		os.Exit(0)
-	}()
-
-	metricsTicker := time.NewTicker(cfg.MetricsReportingInterval)
-	consulSession := initializeConsulSession(cfg.ConsulConfig.TTL, logger)
-	lock := maintainer.NewLock(
-		consulSession,
-		"v1/locks/routing-api",
-		[]byte("something-else"),
-		clock.NewClock(),
-		cfg.ConsulConfig.LockRetryInterval,
-		logger,
-	)
-
-	metricsReporter := metrics.NewMetricsReporter(database, stats, metricsTicker)
-
-	members := grouper.Members{
-		{"lock", lock},
-		{"metrics", metricsReporter},
-	}
-
-	group := grouper.NewOrdered(os.Interrupt, members)
-
-	ifrit.Background(sigmon.New(group))
-
-	logger.Info("starting", lager.Data{"port": *port})
-	err = http.ListenAndServe(":"+strconv.Itoa(*port), handler)
-	if err != nil {
-		panic(err)
-	}
+	return http_server.New(":"+strconv.Itoa(*port), handler)
 }
 
-func initializeConsulSession(lockTTL time.Duration, logger lager.Logger) *consuladapter.Session {
-	client, err := consuladapter.NewClient(*consulCluster)
-	if err != nil {
-		logger.Fatal("new-client-failed", err)
+func initializeDatabase(cfg config.Config, logger lager.Logger) (db.DB, error) {
+	logger.Info("database", lager.Data{"etcd-addresses": flag.Args()})
+	maxWorkers := cfg.MaxConcurrentETCDRequests
+	if maxWorkers <= 0 {
+		maxWorkers = DEFAULT_ETCD_WORKERS
 	}
 
-	sessionMgr := consuladapter.NewSessionManager(client)
-	consulSession, err := consuladapter.NewSession("routing-api", lockTTL, client, sessionMgr)
-	if err != nil {
-		logger.Fatal("consul-session-failed", err)
-	}
-
-	return consulSession
+	return db.NewETCD(flag.Args(), maxWorkers)
 }
 
 func checkFlags() error {
@@ -214,10 +204,6 @@ func checkFlags() error {
 
 	if *systemDomain == "" {
 		return errors.New("No system domain provided")
-	}
-
-	if *consulCluster == "" {
-		return errors.New("No consul cluster provided")
 	}
 
 	return nil

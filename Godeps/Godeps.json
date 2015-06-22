@@ -20,7 +20,7 @@
 		},
 		{
 			"ImportPath": "github.com/cloudfoundry-incubator/routing-api",
-			"Rev": "5bd414a6ba9be877d8c1e82d14e7def8200f80f3"
+			"Rev": "99cb1058b8c5eb2f49e683e15e829a83e837cb27"
 		},
 		{
 			"ImportPath": "github.com/cloudfoundry-incubator/trace-logger",
@@ -28,7 +28,7 @@
 		},
 		{
 			"ImportPath": "github.com/cloudfoundry-incubator/uaa-token-fetcher",
-			"Rev": "536d9c8d4ddfc124536cfb7462583b3200e3bde1"
+			"Rev": "d984db92b74f6a223e6ff2fb028bf379f0fb1a80"
 		},
 		{
 			"ImportPath": "github.com/cloudfoundry/gunk/workpool",

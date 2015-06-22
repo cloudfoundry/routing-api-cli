@@ -20,11 +20,12 @@ type DB interface {
 }
 
 type Route struct {
-	Route   string `json:"route"`
-	Port    int    `json:"port"`
-	IP      string `json:"ip"`
-	TTL     int    `json:"ttl"`
-	LogGuid string `json:"log_guid"`
+	Route           string `json:"route"`
+	Port            int    `json:"port"`
+	IP              string `json:"ip"`
+	TTL             int    `json:"ttl"`
+	LogGuid         string `json:"log_guid"`
+	RouteServiceUrl string `json:"route_service_url,omitempty"`
 }
 
 type etcd struct {
@@ -56,9 +57,10 @@ func (e *etcd) ReadRoutes() ([]Route, error) {
 	if err != nil {
 		return []Route{}, nil
 	}
-	var route Route
+
 	listRoutes := []Route{}
 	for _, node := range routes.ChildNodes {
+		route := Route{}
 		json.Unmarshal([]byte(node.Value), &route)
 		listRoutes = append(listRoutes, route)
 	}

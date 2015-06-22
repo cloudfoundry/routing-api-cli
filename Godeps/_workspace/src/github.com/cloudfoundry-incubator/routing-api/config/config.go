@@ -13,23 +13,17 @@ type MetronConfig struct {
 	Port    string
 }
 
-type ConsulConfig struct {
-	TTLString               string        `yaml:"ttl"`
-	LockRetryIntervalString string        `yaml:"lock_retry_interval"`
-	TTL                     time.Duration `yaml:"-"`
-	LockRetryInterval       time.Duration `yaml:"-"`
-}
-
 type Config struct {
-	UAAPublicKey                   string        `yaml:"uaa_verification_key"`
-	DebugAddress                   string        `yaml:"debug_address"`
-	LogGuid                        string        `yaml:"log_guid"`
-	MetronConfig                   MetronConfig  `yaml:"metron_config"`
-	ConsulConfig                   ConsulConfig  `yaml:"consul_config"`
-	MetricsReportingIntervalString string        `yaml:"metrics_reporting_interval"`
-	MetricsReportingInterval       time.Duration `yaml:"-"`
-	StatsdEndpoint                 string        `yaml:"statsd_endpoint"`
-	MaxConcurrentETCDRequests      uint          `yaml:"max_concurrent_etcd_requests"`
+	UAAPublicKey                    string        `yaml:"uaa_verification_key"`
+	DebugAddress                    string        `yaml:"debug_address"`
+	LogGuid                         string        `yaml:"log_guid"`
+	MetronConfig                    MetronConfig  `yaml:"metron_config"`
+	MetricsReportingIntervalString  string        `yaml:"metrics_reporting_interval"`
+	MetricsReportingInterval        time.Duration `yaml:"-"`
+	StatsdEndpoint                  string        `yaml:"statsd_endpoint"`
+	StatsdClientFlushIntervalString string        `yaml:"statsd_client_flush_interval"`
+	StatsdClientFlushInterval       time.Duration `yaml:"-"`
+	MaxConcurrentETCDRequests       uint          `yaml:"max_concurrent_etcd_requests"`
 }
 
 func NewConfigFromFile(configFile string) (Config, error) {
@@ -59,7 +53,11 @@ func (cfg *Config) Initialize(file []byte) error {
 		return errors.New("No uaa_verification_key specified")
 	}
 
-	cfg.process()
+	err = cfg.process()
+
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -71,17 +69,11 @@ func (cfg *Config) process() error {
 	}
 	cfg.MetricsReportingInterval = metricsReportingInterval
 
-	consulTTL, err := time.ParseDuration(cfg.ConsulConfig.TTLString)
+	statsdClientFlushInterval, err := time.ParseDuration(cfg.StatsdClientFlushIntervalString)
 	if err != nil {
 		return err
 	}
-	cfg.ConsulConfig.TTL = consulTTL
-
-	lockRetryInterval, err := time.ParseDuration(cfg.ConsulConfig.LockRetryIntervalString)
-	if err != nil {
-		return err
-	}
-	cfg.ConsulConfig.LockRetryInterval = lockRetryInterval
+	cfg.StatsdClientFlushInterval = statsdClientFlushInterval
 
 	return nil
 }
