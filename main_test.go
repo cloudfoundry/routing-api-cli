@@ -49,7 +49,7 @@ var _ = Describe("Main", func() {
 			authServer.AppendHandlers(
 				ghttp.CombineHandlers(
 					ghttp.VerifyRequest("POST", "/oauth/token"),
-					ghttp.VerifyBasicAuth("some-name", "some-password"),
+					ghttp.VerifyBasicAuth("some-name", "some-secret"),
 					ghttp.VerifyContentType("application/x-www-form-urlencoded; charset=UTF-8"),
 					ghttp.VerifyHeader(http.Header{
 						"Accept": []string{"application/json; charset=utf-8"},
@@ -70,8 +70,8 @@ var _ = Describe("Main", func() {
 
 			flags = []string{
 				"-api", server.URL(),
-				"-oauth-name", "some-name",
-				"-oauth-password", "some-password",
+				"-client-id", "some-name",
+				"-client-secret", "some-secret",
 				"-oauth-url", authServer.URL(),
 			}
 		})
@@ -268,8 +268,8 @@ var _ = Describe("Main", func() {
 		BeforeEach(func() {
 			flags = []string{
 				"-api", "some-server-name",
-				"-oauth-name", "some-name",
-				"-oauth-password", "some-password",
+				"-client-id", "some-name",
+				"-client-secret", "some-secret",
 				"-oauth-url", "http://some.oauth.url",
 			}
 		})
@@ -277,8 +277,8 @@ var _ = Describe("Main", func() {
 		Context("when no API endpoint is specified", func() {
 			BeforeEach(func() {
 				flags = []string{
-					"-oauth-name", "some-name",
-					"-oauth-password", "some-password",
+					"-client-id", "some-name",
+					"-client-secret", "some-secret",
 					"-oauth-url", "http://some.oauth.url",
 				}
 			})
@@ -299,8 +299,8 @@ var _ = Describe("Main", func() {
 				Eventually(session).Should(Exit(1))
 				contents := session.Out.Contents()
 				Expect(contents).To(ContainSubstring("Must provide an API endpoint for the routing-api component.\n"))
-				Expect(contents).To(ContainSubstring("Must provide the name of an OAuth client.\n"))
-				Expect(contents).To(ContainSubstring("Must provide an OAuth password/secret.\n"))
+				Expect(contents).To(ContainSubstring("Must provide the id of an OAuth client.\n"))
+				Expect(contents).To(ContainSubstring("Must provide an OAuth secret.\n"))
 				Expect(contents).To(ContainSubstring("Must provide an URL to the OAuth client.\n"))
 			})
 		})

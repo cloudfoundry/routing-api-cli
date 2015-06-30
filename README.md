@@ -35,8 +35,8 @@ Each command has required arguments and route structure.
 Required arguments:
 
 **--api**: the routing API endpoint, e.g. https://routing-api.example.com<br />
-**--oauth-name**: the name of the client registered with your OAuth provider with the [proper authorities](https://github.com/cloudfoundry-incubator/routing-api#authorization-token), e.g. admin<br />
-**--oauth-password**: your OAuth password, e.g. admin-secret<br />
+**--client-id**: the id of the client registered with your OAuth provider with the [proper authorities](https://github.com/cloudfoundry-incubator/routing-api#authorization-token), e.g. admin<br />
+**--client-secret**: your OAuth client secret, e.g. admin-secret<br />
 **--oauth-url**: the OAuth provider endpoint with optional port, e.g. https://uaa.example.com
 
 Routes are described as JSON: `'[{"route":"foo.com","port":65340,"ip":"1.2.3.4","ttl":60, "route_service_url":"https://route-service.example.cf-app.com"}]'`
@@ -72,9 +72,9 @@ Notes:
 ###Examples
 
 ```bash
-rtr list --api https://routing-api.example.com --oauth-name admin --oauth-password admin-secret --oauth-url https://uaa.example.com
+rtr list --api https://routing-api.example.com --client-id admin --client-secret admin-secret --oauth-url https://uaa.example.com
 
-rtr register --api https://routing-api.example.com --oauth-name admin --oauth-password admin-secret --oauth-url https://uaa.example.com '[{"route":"mynewroute.com","port":12345,"ip":"1.2.3.4","ttl":60}]'
+rtr register --api https://routing-api.example.com --client-id admin --client-secret admin-secret --oauth-url https://uaa.example.com '[{"route":"mynewroute.com","port":12345,"ip":"1.2.3.4","ttl":60}]'
 
-rtr unregister --api https://routing-api.example.com --oauth-name admin --oauth-password admin-secret --oauth-url https://uaa.example.com '[{"route":"undesiredroute.com","port":12345,"ip":"1.2.3.4"}]'
+rtr unregister --api https://routing-api.example.com --client-id admin --client-secret admin-secret --oauth-url https://uaa.example.com '[{"route":"undesiredroute.com","port":12345,"ip":"1.2.3.4"}]'
 ```

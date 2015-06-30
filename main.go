@@ -24,12 +24,12 @@ var flags = []cli.Flag{
 		Usage: "Endpoint for the routing-api. (required)",
 	},
 	cli.StringFlag{
-		Name:  "oauth-name",
-		Usage: "Name of the OAuth client. (required)",
+		Name:  "client-id",
+		Usage: "Id of the OAuth client. (required)",
 	},
 	cli.StringFlag{
-		Name:  "oauth-password",
-		Usage: "Password for OAuth client. (required)",
+		Name:  "client-secret",
+		Usage: "Secret for OAuth client. (required)",
 	},
 	cli.StringFlag{
 		Name:  "oauth-url",
@@ -70,11 +70,11 @@ func main() {
 	app := cli.NewApp()
 	app.Name = "rtr"
 	app.Usage = "A CLI for the Router API server."
-	authors := []cli.Author{cli.Author{Name: "Cloud Foundry Runtime Team", Email: "cf-dev@lists.cloudfoundry.org"}}
+	authors := []cli.Author{cli.Author{Name: "Cloud Foundry Routing Team", Email: "cf-dev@lists.cloudfoundry.org"}}
 	app.Authors = authors
 	app.Commands = cliCommands
 	app.CommandNotFound = commandNotFound
-	app.Version = "1.1.0"
+	app.Version = "2.0.0"
 
 	cli.AppHelpTemplate = cli.AppHelpTemplate + environmentVariableHelp
 
@@ -186,8 +186,8 @@ func buildOauthConfig(c *cli.Context) token_fetcher.OAuthConfig {
 
 	return token_fetcher.OAuthConfig{
 		TokenEndpoint: oauthUrl.Scheme + "://" + host,
-		ClientName:    c.String("oauth-name"),
-		ClientSecret:  c.String("oauth-password"),
+		ClientName:    c.String("client-id"),
+		ClientSecret:  c.String("client-secret"),
 		Port:          port,
 	}
 }
@@ -199,12 +199,12 @@ func checkFlags(c *cli.Context) []string {
 		issues = append(issues, "Must provide an API endpoint for the routing-api component.")
 	}
 
-	if c.String("oauth-name") == "" {
-		issues = append(issues, "Must provide the name of an OAuth client.")
+	if c.String("client-id") == "" {
+		issues = append(issues, "Must provide the id of an OAuth client.")
 	}
 
-	if c.String("oauth-password") == "" {
-		issues = append(issues, "Must provide an OAuth password/secret.")
+	if c.String("client-secret") == "" {
+		issues = append(issues, "Must provide an OAuth secret.")
 	}
 
 	if c.String("oauth-url") == "" {
