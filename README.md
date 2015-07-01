@@ -6,7 +6,13 @@ The Routing API CLI lets you list, register, and unregister routes with the Clou
 
 ## Installation
 
-- Install [godep](https://github.com/tools/godep)
+### Download Binaries
+
+See [Releases](https://github.com/cloudfoundry-incubator/routing-api-cli/releases)
+
+### Compile
+
+1. Install [godep](https://github.com/tools/godep)
 - Build the binary, and place it in your gopath:
 
   ```bash
