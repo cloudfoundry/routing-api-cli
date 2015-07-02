@@ -32,7 +32,7 @@ Required arguments:
 **--oauth-password**: your OAuth password, e.g. admin-secret<br />
 **--oauth-url**: the OAuth provider endpoint with optional port, e.g. https://uaa.example.com
 
-Routes are described as JSON: `'[{"route":"foo.com","port":65340,"ip":"1.2.3.4","ttl":60}]'`
+Routes are described as JSON: `'[{"route":"foo.com","port":65340,"ip":"1.2.3.4","ttl":60, "route_service_url":"https://route-service.example.cf-app.com"}]'`
 
 ### List Routes
 ```bash
@@ -58,8 +58,9 @@ rtr list [args]
 ```
 
 Notes:
-- Route "ttl" definition is ignored for unregister
-- CLI will appear successful when unregistering routes that do not exist
+- Route "ttl" definition is ignored for unregister.
+- CLI will appear successful when unregistering routes that do not exist.
+- The `route_service_url` is an optional value, and must be a HTTPS url.
 
 ###Examples
 
