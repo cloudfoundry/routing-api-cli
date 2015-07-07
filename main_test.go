@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"os/exec"
 
+	"os"
+
 	"code.google.com/p/go-uuid/uuid"
 	"github.com/cloudfoundry-incubator/routing-api/db"
 	token_fetcher "github.com/cloudfoundry-incubator/uaa-token-fetcher"
@@ -14,7 +16,6 @@ import (
 	. "github.com/onsi/gomega/gbytes"
 	. "github.com/onsi/gomega/gexec"
 	"github.com/onsi/gomega/ghttp"
-	"os"
 )
 
 var _ = Describe("Main", func() {
@@ -101,7 +102,7 @@ var _ = Describe("Main", func() {
 
 			session := routeRegistrar(command...)
 
-			Eventually(session).Should(Exit(0))
+			Eventually(session, "2s").Should(Exit(0))
 			Expect(server.ReceivedRequests()).To(HaveLen(1))
 		})
 
@@ -133,7 +134,7 @@ var _ = Describe("Main", func() {
 
 			session := routeRegistrar(command...)
 
-			Eventually(session).Should(Exit(0))
+			Eventually(session, "2s").Should(Exit(0))
 			Expect(string(session.Out.Contents())).To(ContainSubstring("Successfully registered routes: " + routes))
 			Expect(server.ReceivedRequests()).To(HaveLen(1))
 		})
@@ -160,7 +161,7 @@ var _ = Describe("Main", func() {
 
 			session := routeRegistrar(command...)
 
-			Eventually(session).Should(Exit(0))
+			Eventually(session, "2s").Should(Exit(0))
 			Expect(string(session.Out.Contents())).To(ContainSubstring("Successfully unregistered routes: " + routes))
 			Expect(server.ReceivedRequests()).To(HaveLen(1))
 		})
@@ -184,7 +185,7 @@ var _ = Describe("Main", func() {
 			expectedRoutes, err := json.Marshal(routes)
 			Expect(err).ToNot(HaveOccurred())
 
-			Eventually(session).Should(Exit(0))
+			Eventually(session, "2s").Should(Exit(0))
 			Expect(string(session.Out.Contents())).To(ContainSubstring(string(expectedRoutes)))
 			Expect(server.ReceivedRequests()).To(HaveLen(1))
 		})
@@ -193,7 +194,7 @@ var _ = Describe("Main", func() {
 			command := buildCommand("register", flags, []string{"[{}]"})
 			session := routeRegistrar(command...)
 
-			Eventually(session).Should(Exit(0))
+			Eventually(session, "2s").Should(Exit(0))
 			Expect(authServer.ReceivedRequests()).To(HaveLen(1))
 			Expect(server.ReceivedRequests()).To(HaveLen(1))
 		})
@@ -217,7 +218,7 @@ var _ = Describe("Main", func() {
 				JustBeforeEach(func() {
 					command := buildCommand("list", flags, []string{})
 					session = routeRegistrar(command...)
-					Eventually(session).Should(Exit(0))
+					Eventually(session, "2s").Should(Exit(0))
 				})
 
 				Context("when RTR_TRACE is not set", func() {
