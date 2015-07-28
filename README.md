@@ -34,10 +34,10 @@ Each command has required arguments and route structure.
 
 Required arguments:
 
-**--api**: the routing API endpoint, e.g. https://routing-api.example.com<br />
-**--client-id**: the id of the client registered with your OAuth provider with the [proper authorities](https://github.com/cloudfoundry-incubator/routing-api#authorization-token), e.g. admin<br />
-**--client-secret**: your OAuth client secret, e.g. admin-secret<br />
-**--oauth-url**: the OAuth provider endpoint with optional port, e.g. https://uaa.example.com
+**--api**: the routing API endpoint, e.g. `http://routing-api.10.244.0.34.xip.io`<br />
+**--client-id**: the id of the client registered with your OAuth provider with the [proper authorities](https://github.com/cloudfoundry-incubator/routing-api#oauth-clients), e.g. `routing_api_client`<br />
+**--client-secret**: your OAuth client secret, e.g. `route_secret`<br />
+**--oauth-url**: the OAuth provider endpoint with optional port, e.g. `http://uaa.10.244.0.34.xip.io`
 
 Routes are described as JSON: `'[{"route":"foo.com","port":65340,"ip":"1.2.3.4","ttl":60, "route_service_url":"https://route-service.example.cf-app.com"}]'`
 
