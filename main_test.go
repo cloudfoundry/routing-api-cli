@@ -504,9 +504,6 @@ var _ = Describe("Main", func() {
 })
 
 func routeRegistrar(args ...string) *Session {
-	path, err := Build("github.com/cloudfoundry-incubator/routing-api-cli")
-	Expect(err).NotTo(HaveOccurred())
-
 	session, err := Start(exec.Command(path, args...), GinkgoWriter, GinkgoWriter)
 	Expect(err).ToNot(HaveOccurred())
 
