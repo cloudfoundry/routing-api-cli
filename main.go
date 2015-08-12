@@ -60,6 +60,12 @@ var cliCommands = []cli.Command{
 		Action: listRoutes,
 		Flags:  flags,
 	},
+	{
+		Name:   "events",
+		Usage:  "Stream events from the Routing API",
+		Action: streamEvents,
+		Flags:  flags,
+	},
 }
 
 var environmentVariableHelp = `ENVIRONMENT VARIABLES:
@@ -168,6 +174,36 @@ func listRoutes(c *cli.Context) {
 	fmt.Printf("%v", string(prettyRoutes))
 }
 
+func streamEvents(c *cli.Context) {
+	issues := checkFlags(c)
+	issues = append(issues, checkArguments(c, "events")...)
+
+	if len(issues) > 0 {
+		printHelpForCommand(c, issues, "events")
+	}
+
+	client := routing_api.NewClient(c.String("api"))
+
+	config := buildOauthConfig(c)
+	fetcher := token_fetcher.NewTokenFetcher(&config)
+	eventSource, err := commands.Events(client, fetcher)
+	if err != nil {
+		fmt.Println("streaming events failed:", err)
+		os.Exit(3)
+	}
+
+	for {
+		e, err := eventSource.Next()
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Connection closed: %s", err.Error())
+			break
+		}
+
+		event, _ := json.Marshal(e)
+		fmt.Printf("%v", string(event))
+	}
+}
+
 func buildOauthConfig(c *cli.Context) token_fetcher.OAuthConfig {
 	var port int
 	oauthUrl, _ := url.Parse(c.String("oauth-url"))
@@ -229,7 +265,7 @@ func checkArguments(c *cli.Context, cmd string) []string {
 		} else if len(c.Args()) < 1 {
 			issues = append(issues, "Must provide routes JSON.")
 		}
-	case "list":
+	case "list", "events":
 		if len(c.Args()) > 0 {
 			issues = append(issues, "Unexpected arguments.")
 		}

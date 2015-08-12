@@ -9,6 +9,7 @@ import (
 	"os"
 
 	"code.google.com/p/go-uuid/uuid"
+	"github.com/cloudfoundry-incubator/routing-api"
 	"github.com/cloudfoundry-incubator/routing-api/db"
 	token_fetcher "github.com/cloudfoundry-incubator/uaa-token-fetcher"
 	. "github.com/onsi/ginkgo"
@@ -16,6 +17,7 @@ import (
 	. "github.com/onsi/gomega/gbytes"
 	. "github.com/onsi/gomega/gexec"
 	"github.com/onsi/gomega/ghttp"
+	"github.com/vito/go-sse/sse"
 )
 
 var _ = Describe("Main", func() {
@@ -190,6 +192,68 @@ var _ = Describe("Main", func() {
 			Expect(server.ReceivedRequests()).To(HaveLen(1))
 		})
 
+		Context("events", func() {
+			It("subscribes to routing API events", func() {
+				event := routing_api.Event{
+					Action: "Delete",
+					Route: db.Route{
+						Route:           "z.a.k",
+						Port:            63,
+						IP:              "42.42.42.42",
+						TTL:             1,
+						LogGuid:         "Tomato",
+						RouteServiceUrl: "https://route-service-url.com",
+					},
+				}
+
+				routeString, err := json.Marshal(event.Route)
+				Expect(err).ToNot(HaveOccurred())
+
+				sseEvent := sse.Event{
+					Name: event.Action,
+					Data: routeString,
+				}
+
+				headers := make(http.Header)
+				headers.Set("Content-Type", "text/event-stream; charset=utf-8")
+
+				command := buildCommand("events", flags, []string{})
+
+				server.SetHandler(0,
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", "/v1/events"),
+						ghttp.RespondWith(http.StatusOK, sseEvent.Encode(), headers),
+					),
+				)
+
+				session := routeRegistrar(command...)
+
+				eventString, err := json.Marshal(event)
+				Expect(err).ToNot(HaveOccurred())
+
+				Eventually(session, "2s").Should(Exit(0))
+				Expect(server.ReceivedRequests()).To(HaveLen(1))
+				Expect(string(session.Out.Contents())).To(ContainSubstring(string(eventString)))
+			})
+
+			It("emits an error message on server termination", func() {
+				command := buildCommand("events", flags, []string{})
+
+				server.SetHandler(0,
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", "/v1/events"),
+						ghttp.RespondWith(http.StatusOK, ""),
+					),
+				)
+
+				session := routeRegistrar(command...)
+
+				Eventually(session, "2s").Should(Exit(0))
+				Expect(server.ReceivedRequests()).To(HaveLen(1))
+				Expect(string(session.Err.Contents())).To(ContainSubstring("Connection closed: "))
+			})
+		})
+
 		It("Requests a token", func() {
 			command := buildCommand("register", flags, []string{"[{}]"})
 			session := routeRegistrar(command...)
@@ -320,6 +384,13 @@ var _ = Describe("Main", func() {
 		})
 
 		It("outputs help info for a valid command", func() {
+			session := routeRegistrar("events")
+
+			Eventually(session).Should(Exit(1))
+			Eventually(session).Should(Say("command events"))
+		})
+
+		It("outputs help info for a valid command", func() {
 			session := routeRegistrar("unregister")
 
 			Eventually(session).Should(Exit(1))
@@ -391,6 +462,24 @@ var _ = Describe("Main", func() {
 
 				Eventually(session).Should(Exit(3))
 				Eventually(session).Should(Say("route unregistration failed:"))
+			})
+		})
+
+		Context("events", func() {
+			It("fails if there are unexpected arguments", func() {
+				command := buildCommand("events", flags, []string{"ice cream"})
+				session := routeRegistrar(command...)
+
+				Eventually(session).Should(Exit(1))
+				Eventually(session).Should(Say("Unexpected arguments."))
+			})
+
+			It("shows the error if streaming events fails", func() {
+				command := buildCommand("events", flags, []string{})
+				session := routeRegistrar(command...)
+
+				Eventually(session).Should(Exit(3))
+				Eventually(session).Should(Say("streaming events failed:"))
 			})
 		})
 
