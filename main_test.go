@@ -137,7 +137,7 @@ var _ = Describe("Main", func() {
 			session := routeRegistrar(command...)
 
 			Eventually(session, "2s").Should(Exit(0))
-			Expect(string(session.Out.Contents())).To(ContainSubstring("Successfully registered routes: " + routes))
+			Expect(string(session.Out.Contents())).To(ContainSubstring("Successfully registered routes: " + routes + "\n"))
 			Expect(server.ReceivedRequests()).To(HaveLen(1))
 		})
 
@@ -188,7 +188,7 @@ var _ = Describe("Main", func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			Eventually(session, "2s").Should(Exit(0))
-			Expect(string(session.Out.Contents())).To(ContainSubstring(string(expectedRoutes)))
+			Expect(string(session.Out.Contents())).To(ContainSubstring(string(expectedRoutes) + "\n"))
 			Expect(server.ReceivedRequests()).To(HaveLen(1))
 		})
 
@@ -230,6 +230,7 @@ var _ = Describe("Main", func() {
 
 				eventString, err := json.Marshal(event)
 				Expect(err).ToNot(HaveOccurred())
+				eventString = append(eventString, '\n')
 
 				Eventually(session, "2s").Should(Exit(0))
 				Expect(server.ReceivedRequests()).To(HaveLen(1))

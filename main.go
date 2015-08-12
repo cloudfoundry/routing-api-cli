@@ -82,7 +82,7 @@ func main() {
 	app.CommandNotFound = commandNotFound
 	app.Version = "2.0.0"
 
-	cli.AppHelpTemplate = cli.AppHelpTemplate + environmentVariableHelp
+	cli.AppHelpTemplate = cli.AppHelpTemplate + environmentVariableHelp + "\n"
 
 	trace.NewLogger(os.Getenv(RTR_TRACE))
 
@@ -118,7 +118,7 @@ func registerRoutes(c *cli.Context) {
 		os.Exit(3)
 	}
 
-	fmt.Printf("Successfully registered routes: %s", desiredRoutes)
+	fmt.Printf("Successfully registered routes: %s\n", desiredRoutes)
 }
 
 func unregisterRoutes(c *cli.Context) {
@@ -148,7 +148,7 @@ func unregisterRoutes(c *cli.Context) {
 		os.Exit(3)
 	}
 
-	fmt.Printf("Successfully unregistered routes: %s", desiredRoutes)
+	fmt.Printf("Successfully unregistered routes: %s\n", desiredRoutes)
 }
 
 func listRoutes(c *cli.Context) {
@@ -171,7 +171,7 @@ func listRoutes(c *cli.Context) {
 
 	prettyRoutes, _ := json.Marshal(routes)
 
-	fmt.Printf("%v", string(prettyRoutes))
+	fmt.Printf("%v\n", string(prettyRoutes))
 }
 
 func streamEvents(c *cli.Context) {
@@ -200,7 +200,7 @@ func streamEvents(c *cli.Context) {
 		}
 
 		event, _ := json.Marshal(e)
-		fmt.Printf("%v", string(event))
+		fmt.Printf("%v\n", string(event))
 	}
 }
 
