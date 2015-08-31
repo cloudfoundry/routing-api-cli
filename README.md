@@ -55,6 +55,10 @@ rtr register [args] [routes]
 ```bash
 rtr unregister [args] [routes]
 ```
+### Subscribe to Events
+```bash
+rtr events [args]
+```
 
 ### Tracing Requests and Responses
 
