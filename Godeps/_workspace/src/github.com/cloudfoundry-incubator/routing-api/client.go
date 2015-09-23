@@ -20,8 +20,12 @@ type Client interface {
 	UpsertRoutes([]db.Route) error
 	Routes() ([]db.Route, error)
 	DeleteRoutes([]db.Route) error
+	RouterGroups() ([]db.RouterGroup, error)
+	UpsertTcpRouteMappings([]db.TcpRouteMapping) error
+	TcpRouteMappings() ([]db.TcpRouteMapping, error)
 
 	SubscribeToEvents() (EventSource, error)
+	SubscribeToTcpEvents() (TcpEventSource, error)
 }
 
 func NewClient(url string) Client {
@@ -55,13 +59,45 @@ func (c *client) Routes() ([]db.Route, error) {
 	return routes, err
 }
 
+func (c *client) RouterGroups() ([]db.RouterGroup, error) {
+	var routerGroups []db.RouterGroup
+	err := c.doRequest(ListRouterGroups, nil, nil, nil, &routerGroups)
+	return routerGroups, err
+}
+
 func (c *client) DeleteRoutes(routes []db.Route) error {
 	return c.doRequest(DeleteRoute, nil, nil, routes, nil)
 }
 
+func (c *client) UpsertTcpRouteMappings(tcpRouteMappings []db.TcpRouteMapping) error {
+	return c.doRequest(UpsertTcpRouteMapping, nil, nil, tcpRouteMappings, nil)
+}
+
+func (c *client) TcpRouteMappings() ([]db.TcpRouteMapping, error) {
+	var tcpRouteMappings []db.TcpRouteMapping
+	err := c.doRequest(ListTcpRouteMapping, nil, nil, nil, &tcpRouteMappings)
+	return tcpRouteMappings, err
+}
+
 func (c *client) SubscribeToEvents() (EventSource, error) {
+	eventSource, err := c.doSubscribe(EventStreamRoute)
+	if err != nil {
+		return nil, err
+	}
+	return NewEventSource(eventSource), nil
+}
+
+func (c *client) SubscribeToTcpEvents() (TcpEventSource, error) {
+	eventSource, err := c.doSubscribe(EventStreamTcpRoute)
+	if err != nil {
+		return nil, err
+	}
+	return NewTcpEventSource(eventSource), nil
+}
+
+func (c *client) doSubscribe(routeName string) (RawEventSource, error) {
 	eventSource, err := sse.Connect(c.streamingHTTPClient, time.Second, func() *http.Request {
-		request, err := c.reqGen.CreateRequest(EventStreamRoute, nil, nil)
+		request, err := c.reqGen.CreateRequest(routeName, nil, nil)
 		request.Header.Add("Authorization", "bearer "+c.authToken)
 		if err != nil {
 			panic(err) // totally shouldn't happen
@@ -74,7 +110,7 @@ func (c *client) SubscribeToEvents() (EventSource, error) {
 		return nil, err
 	}
 
-	return NewEventSource(eventSource), nil
+	return eventSource, nil
 }
 
 func (c *client) createRequest(requestName string, params rata.Params, queryParams url.Values, request interface{}) (*http.Request, error) {

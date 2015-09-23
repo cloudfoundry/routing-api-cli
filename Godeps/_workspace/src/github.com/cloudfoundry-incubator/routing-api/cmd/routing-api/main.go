@@ -11,7 +11,7 @@ import (
 
 	"github.com/cactus/go-statsd-client/statsd"
 	"github.com/cloudfoundry-incubator/cf-debug-server"
-	"github.com/cloudfoundry-incubator/routing-api"
+	routing_api "github.com/cloudfoundry-incubator/routing-api"
 	"github.com/cloudfoundry-incubator/routing-api/authentication"
 	"github.com/cloudfoundry-incubator/routing-api/config"
 	"github.com/cloudfoundry-incubator/routing-api/db"
@@ -32,7 +32,7 @@ import (
 const DEFAULT_ETCD_WORKERS = 25
 
 var maxTTL = flag.Int("maxTTL", 120, "Maximum TTL on the route")
-var port = flag.Int("port", 8080, "Port to run rounting-api server on")
+var port = flag.Uint("port", 8080, "Port to run rounting-api server on")
 var configPath = flag.String("config", "", "Configuration for routing-api")
 var devMode = flag.Bool("devMode", false, "Disable authentication for easier development iteration")
 var ip = flag.String("ip", "", "The public ip of the routing api")
@@ -132,10 +132,10 @@ func constructStopper(stopChan chan struct{}) ifrit.Runner {
 }
 
 func constructRouteRegister(logGuid string, database db.DB, logger lager.Logger) ifrit.Runner {
-	host := fmt.Sprintf("routing-api.%s", *systemDomain)
+	host := fmt.Sprintf("api.%s/routing", *systemDomain)
 	route := db.Route{
 		Route:   host,
-		Port:    *port,
+		Port:    uint16(*port),
 		IP:      *ip,
 		TTL:     *maxTTL,
 		LogGuid: logGuid,
@@ -164,12 +164,18 @@ func constructApiServer(cfg config.Config, database db.DB, statsdClient statsd.S
 	validator := handlers.NewValidator()
 	routesHandler := handlers.NewRoutesHandler(token, *maxTTL, validator, database, logger)
 	eventStreamHandler := handlers.NewEventStreamHandler(token, database, logger, statsdClient, stopChan)
+	routeGroupsHandler := handlers.NewRouteGroupsHandler(token, logger)
+	tcpMappingsHandler := handlers.NewTcpRouteMappingsHandler(token, validator, database, logger)
 
 	actions := rata.Handlers{
-		"Upsert":      route(routesHandler.Upsert),
-		"Delete":      route(routesHandler.Delete),
-		"List":        route(routesHandler.List),
-		"EventStream": route(eventStreamHandler.EventStream),
+		routing_api.UpsertRoute:           route(routesHandler.Upsert),
+		routing_api.DeleteRoute:           route(routesHandler.Delete),
+		routing_api.ListRoute:             route(routesHandler.List),
+		routing_api.EventStreamRoute:      route(eventStreamHandler.EventStream),
+		routing_api.ListRouterGroups:      route(routeGroupsHandler.ListRouterGroups),
+		routing_api.UpsertTcpRouteMapping: route(tcpMappingsHandler.Upsert),
+		routing_api.ListTcpRouteMapping:   route(tcpMappingsHandler.List),
+		routing_api.EventStreamTcpRoute:   route(eventStreamHandler.TcpEventStream),
 	}
 
 	handler, err := rata.NewRouter(routing_api.Routes, actions)
@@ -179,7 +185,7 @@ func constructApiServer(cfg config.Config, database db.DB, statsdClient statsd.S
 	}
 
 	handler = handlers.LogWrap(handler, logger)
-	return http_server.New(":"+strconv.Itoa(*port), handler)
+	return http_server.New(":"+strconv.Itoa(int(*port)), handler)
 }
 
 func initializeDatabase(cfg config.Config, logger lager.Logger) (db.DB, error) {
@@ -204,6 +210,10 @@ func checkFlags() error {
 
 	if *systemDomain == "" {
 		return errors.New("No system domain provided")
+	}
+
+	if *port > 65535 {
+		return errors.New("Port must be in range 0 - 65535")
 	}
 
 	return nil

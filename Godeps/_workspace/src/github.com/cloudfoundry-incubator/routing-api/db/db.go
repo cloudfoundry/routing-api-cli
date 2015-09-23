@@ -3,6 +3,7 @@ package db
 import (
 	"encoding/json"
 	"fmt"
+	"net/url"
 
 	"github.com/cloudfoundry/gunk/workpool"
 	"github.com/cloudfoundry/storeadapter"
@@ -14,19 +15,47 @@ type DB interface {
 	ReadRoutes() ([]Route, error)
 	SaveRoute(route Route) error
 	DeleteRoute(route Route) error
+
+	ReadTcpRouteMappings() ([]TcpRouteMapping, error)
+	SaveTcpRouteMapping(tcpMapping TcpRouteMapping) error
+
 	Connect() error
 	Disconnect() error
-	WatchRouteChanges() (<-chan storeadapter.WatchEvent, chan<- bool, <-chan error)
+	WatchRouteChanges(filter string) (<-chan storeadapter.WatchEvent, chan<- bool, <-chan error)
+}
+
+type RouterGroupType string
+
+type RouterGroup struct {
+	Guid string          `json:"guid"`
+	Name string          `json:"name"`
+	Type RouterGroupType `json:"type"`
 }
 
 type Route struct {
 	Route           string `json:"route"`
-	Port            int    `json:"port"`
+	Port            uint16 `json:"port"`
 	IP              string `json:"ip"`
 	TTL             int    `json:"ttl"`
 	LogGuid         string `json:"log_guid"`
 	RouteServiceUrl string `json:"route_service_url,omitempty"`
 }
+
+type TcpRouteMapping struct {
+	TcpRoute TcpRoute `json:"route"`
+	HostPort uint16   `json:"backend_port"`
+	HostIP   string   `json:"backend_ip"`
+}
+
+type TcpRoute struct {
+	RouterGroupGuid string `json:"router_group_guid"`
+	ExternalPort    uint16 `json:"port"`
+}
+
+const (
+	TCP_MAPPING_BASE_KEY string = "/v1/tcp_routes/router_groups"
+	HTTP_ROUTE_BASE_KEY  string = "/routes"
+)
 
 type etcd struct {
 	storeAdapter *etcdstoreadapter.ETCDStoreAdapter
@@ -38,7 +67,10 @@ func NewETCD(nodeURLs []string, maxWorkers uint) (*etcd, error) {
 		return nil, err
 	}
 
-	storeAdapter := etcdstoreadapter.NewETCDStoreAdapter(nodeURLs, workpool)
+	storeAdapter, err := etcdstoreadapter.New(&etcdstoreadapter.ETCDOptions{ClusterUrls: nodeURLs}, workpool)
+	if err != nil {
+		return nil, err
+	}
 	return &etcd{
 		storeAdapter: storeAdapter,
 	}, nil
@@ -53,7 +85,7 @@ func (e *etcd) Disconnect() error {
 }
 
 func (e *etcd) ReadRoutes() ([]Route, error) {
-	routes, err := e.storeAdapter.ListRecursively("/routes")
+	routes, err := e.storeAdapter.ListRecursively(HTTP_ROUTE_BASE_KEY)
 	if err != nil {
 		return []Route{}, nil
 	}
@@ -88,10 +120,54 @@ func (e *etcd) DeleteRoute(route Route) error {
 	return err
 }
 
-func (e *etcd) WatchRouteChanges() (<-chan storeadapter.WatchEvent, chan<- bool, <-chan error) {
-	return e.storeAdapter.Watch("/routes")
+func (e *etcd) WatchRouteChanges(filter string) (<-chan storeadapter.WatchEvent, chan<- bool, <-chan error) {
+	return e.storeAdapter.Watch(filter)
 }
 
 func generateKey(route Route) string {
-	return fmt.Sprintf("/routes/%s,%s:%d", route.Route, route.IP, route.Port)
+	return fmt.Sprintf("%s/%s,%s:%d", HTTP_ROUTE_BASE_KEY, url.QueryEscape(route.Route), route.IP, route.Port)
+}
+
+func (e *etcd) ReadTcpRouteMappings() ([]TcpRouteMapping, error) {
+	tcpMappings, err := e.storeAdapter.ListRecursively(TCP_MAPPING_BASE_KEY)
+	if err != nil {
+		return []TcpRouteMapping{}, nil
+	}
+
+	listMappings := []TcpRouteMapping{}
+	for _, routerGroupNode := range tcpMappings.ChildNodes {
+		for _, externalPortNode := range routerGroupNode.ChildNodes {
+			for _, mappingNode := range externalPortNode.ChildNodes {
+				tcpMapping := TcpRouteMapping{}
+				json.Unmarshal([]byte(mappingNode.Value), &tcpMapping)
+				listMappings = append(listMappings, tcpMapping)
+			}
+		}
+	}
+	return listMappings, nil
+}
+
+func (e *etcd) SaveTcpRouteMapping(tcpMapping TcpRouteMapping) error {
+	key := generateTcpRouteMappingKey(tcpMapping)
+	tcpMappingJson, _ := json.Marshal(tcpMapping)
+	node := storeadapter.StoreNode{
+		Key:   key,
+		Value: tcpMappingJson,
+	}
+	return e.storeAdapter.SetMulti([]storeadapter.StoreNode{node})
+}
+
+func generateTcpRouteMappingKey(tcpMapping TcpRouteMapping) string {
+	// Generating keys following this pattern
+	// /v1/tcp_routes/router_groups/{router_guid}/{port}/{host-ip}:{host-port}
+	return fmt.Sprintf("%s/%s/%d/%s:%d", TCP_MAPPING_BASE_KEY,
+		tcpMapping.TcpRoute.RouterGroupGuid, tcpMapping.TcpRoute.ExternalPort, tcpMapping.HostIP, tcpMapping.HostPort)
+}
+
+func NewTcpRouteMapping(routerGroupGuid string, externalPort uint16, hostIP string, hostPort uint16) TcpRouteMapping {
+	return TcpRouteMapping{
+		TcpRoute: TcpRoute{RouterGroupGuid: routerGroupGuid, ExternalPort: externalPort},
+		HostPort: hostPort,
+		HostIP:   hostIP,
+	}
 }
