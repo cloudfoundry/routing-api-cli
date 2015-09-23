@@ -62,7 +62,7 @@ var _ = Describe("Main", func() {
 
 			server.AppendHandlers(
 				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("POST", "/v1/routes"),
+					ghttp.VerifyRequest("POST", "/routing/v1/routes"),
 					ghttp.VerifyHeader(http.Header{
 						"Authorization": []string{"bearer " + token},
 					}),
@@ -88,7 +88,7 @@ var _ = Describe("Main", func() {
 
 			server.SetHandler(0,
 				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("POST", "/v1/routes"),
+					ghttp.VerifyRequest("POST", "/routing/v1/routes"),
 					ghttp.VerifyJSONRepresenting([]map[string]interface{}{
 						{
 							"route":    "zak.com",
@@ -113,7 +113,7 @@ var _ = Describe("Main", func() {
 			command := buildCommand("register", flags, []string{routes})
 			server.SetHandler(0,
 				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("POST", "/v1/routes"),
+					ghttp.VerifyRequest("POST", "/routing/v1/routes"),
 					ghttp.VerifyJSONRepresenting([]map[string]interface{}{
 						{
 							"route":    "zak.com",
@@ -147,7 +147,7 @@ var _ = Describe("Main", func() {
 
 			server.SetHandler(0,
 				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("DELETE", "/v1/routes"),
+					ghttp.VerifyRequest("DELETE", "/routing/v1/routes"),
 					ghttp.VerifyJSONRepresenting([]map[string]interface{}{
 						{
 							"route":    "zak.com",
@@ -177,7 +177,7 @@ var _ = Describe("Main", func() {
 
 			server.SetHandler(0,
 				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("GET", "/v1/routes"),
+					ghttp.VerifyRequest("GET", "/routing/v1/routes"),
 					ghttp.RespondWithJSONEncoded(http.StatusOK, routes),
 				),
 			)
@@ -221,7 +221,7 @@ var _ = Describe("Main", func() {
 
 				server.SetHandler(0,
 					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", "/v1/events"),
+						ghttp.VerifyRequest("GET", "/routing/v1/events"),
 						ghttp.RespondWith(http.StatusOK, sseEvent.Encode(), headers),
 					),
 				)
@@ -242,7 +242,7 @@ var _ = Describe("Main", func() {
 
 				server.SetHandler(0,
 					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", "/v1/events"),
+						ghttp.VerifyRequest("GET", "/routing/v1/events"),
 						ghttp.RespondWith(http.StatusOK, ""),
 					),
 				)
@@ -274,7 +274,7 @@ var _ = Describe("Main", func() {
 					}
 					server.SetHandler(0,
 						ghttp.CombineHandlers(
-							ghttp.VerifyRequest("GET", "/v1/routes"),
+							ghttp.VerifyRequest("GET", "/routing/v1/routes"),
 							ghttp.RespondWithJSONEncoded(http.StatusOK, routes),
 						),
 					)
