@@ -37,6 +37,17 @@ var flags = []cli.Flag{
 	},
 }
 
+var eventsFlags = []cli.Flag{
+	cli.BoolFlag{
+		Name:  "http",
+		Usage: "Stream HTTP events",
+	},
+	cli.BoolFlag{
+		Name:  "tcp",
+		Usage: "Stream TCP events",
+	},
+}
+
 var cliCommands = []cli.Command{
 	{
 		Name:  "register",
@@ -64,7 +75,7 @@ var cliCommands = []cli.Command{
 		Name:   "events",
 		Usage:  "Stream events from the Routing API",
 		Action: streamEvents,
-		Flags:  flags,
+		Flags:  append(flags, eventsFlags...),
 	},
 }
 
@@ -182,25 +193,90 @@ func streamEvents(c *cli.Context) {
 		printHelpForCommand(c, issues, "events")
 	}
 
+	streamHttp := c.Bool("http")
+	streamTcp := c.Bool("tcp")
+
+	if !streamHttp && !streamTcp {
+		streamHttp = true
+		streamTcp = true
+	}
+
 	client := routing_api.NewClient(c.String("api"))
 
 	config := buildOauthConfig(c)
 	fetcher := token_fetcher.NewTokenFetcher(&config)
-	eventSource, err := commands.Events(client, fetcher)
+	token, err := fetcher.FetchToken()
 	if err != nil {
-		fmt.Println("streaming events failed:", err)
+		fmt.Println("Error fetching oauth token:", err)
 		os.Exit(3)
 	}
 
+	client.SetToken(token.AccessToken)
+	errorChan := make(chan error)
+	eventChan := make(chan string)
+
+	numOfSubscriptions := 0
+
+	if streamHttp {
+		numOfSubscriptions++
+		go streamHttpEvents(client, eventChan, errorChan)
+	}
+
+	if streamTcp {
+		numOfSubscriptions++
+		go streamTcpEvents(client, eventChan, errorChan)
+	}
+
+	errorCount := 0
+
+loop:
+	for {
+		select {
+		case eventMessage := <-eventChan:
+			fmt.Println(eventMessage)
+		case err := <-errorChan:
+			errorCount++
+			fmt.Printf("Connection closed: %s", err.Error())
+			if errorCount >= numOfSubscriptions {
+				break loop
+			}
+		}
+	}
+}
+
+func streamHttpEvents(client routing_api.Client, eventChan chan string, errorChan chan error) {
+	eventSource, err := client.SubscribeToEvents()
+	if err != nil {
+		fmt.Println("streaming events failed:", err)
+		return
+	}
 	for {
 		e, err := eventSource.Next()
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Connection closed: %s", err.Error())
+			errorChan <- err
 			break
 		}
 
 		event, _ := json.Marshal(e)
-		fmt.Printf("%v\n", string(event))
+		eventChan <- fmt.Sprintf("%v\n", string(event))
+	}
+}
+
+func streamTcpEvents(client routing_api.Client, eventChan chan string, errorChan chan error) {
+	eventSource, err := client.SubscribeToTcpEvents()
+	if err != nil {
+		fmt.Println("streaming events failed:", err)
+		return
+	}
+	for {
+		e, err := eventSource.Next()
+		if err != nil {
+			errorChan <- err
+			break
+		}
+
+		event, _ := json.Marshal(e)
+		eventChan <- fmt.Sprintf("%v\n", string(event))
 	}
 }
 

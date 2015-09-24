@@ -68,6 +68,13 @@ var _ = Describe("Main", func() {
 					}),
 					ghttp.RespondWithJSONEncoded(http.StatusOK, nil),
 				),
+				ghttp.CombineHandlers(
+					ghttp.VerifyRequest("POST", "/routing/v1/tcp_routes/routes"),
+					ghttp.VerifyHeader(http.Header{
+						"Authorization": []string{"bearer " + token},
+					}),
+					ghttp.RespondWithJSONEncoded(http.StatusOK, nil),
+				),
 			)
 
 			flags = []string{
@@ -193,8 +200,19 @@ var _ = Describe("Main", func() {
 		})
 
 		Context("events", func() {
-			It("subscribes to routing API events", func() {
-				event := routing_api.Event{
+			var (
+				httpEvent       routing_api.Event
+				tcpEvent        routing_api.TcpEvent
+				httpEventString []byte
+				tcpEventString  []byte
+				sseEvent        sse.Event
+				sseEventTcp     sse.Event
+				headers         http.Header
+			)
+
+			BeforeEach(func() {
+
+				httpEvent = routing_api.Event{
 					Action: "Delete",
 					Route: db.Route{
 						Route:           "z.a.k",
@@ -206,18 +224,29 @@ var _ = Describe("Main", func() {
 					},
 				}
 
-				routeString, err := json.Marshal(event.Route)
-				Expect(err).ToNot(HaveOccurred())
-
-				sseEvent := sse.Event{
-					Name: event.Action,
-					Data: routeString,
+				tcpEvent = routing_api.TcpEvent{
+					Action: "Upsert",
+					TcpRouteMapping: db.TcpRouteMapping{
+						TcpRoute: db.TcpRoute{
+							RouterGroupGuid: "some-guid",
+							ExternalPort:    1234,
+						},
+						HostPort: 6789,
+						HostIP:   "some-ip",
+					},
 				}
 
-				headers := make(http.Header)
-				headers.Set("Content-Type", "text/event-stream; charset=utf-8")
+				var err error
+				httpEventString, err = json.Marshal(httpEvent.Route)
+				Expect(err).ToNot(HaveOccurred())
 
-				command := buildCommand("events", flags, []string{})
+				sseEvent = sse.Event{
+					Name: httpEvent.Action,
+					Data: httpEventString,
+				}
+
+				headers = make(http.Header)
+				headers.Set("Content-Type", "text/event-stream; charset=utf-8")
 
 				server.SetHandler(0,
 					ghttp.CombineHandlers(
@@ -226,15 +255,14 @@ var _ = Describe("Main", func() {
 					),
 				)
 
-				session := routeRegistrar(command...)
-
-				eventString, err := json.Marshal(event)
+				tcpEventString, err = json.Marshal(tcpEvent.TcpRouteMapping)
 				Expect(err).ToNot(HaveOccurred())
-				eventString = append(eventString, '\n')
 
-				Eventually(session, "2s").Should(Exit(0))
-				Expect(server.ReceivedRequests()).To(HaveLen(1))
-				Expect(string(session.Out.Contents())).To(ContainSubstring(string(eventString)))
+				sseEventTcp = sse.Event{
+					Name: tcpEvent.Action,
+					Data: tcpEventString,
+				}
+
 			})
 
 			It("emits an error message on server termination", func() {
@@ -242,7 +270,11 @@ var _ = Describe("Main", func() {
 
 				server.SetHandler(0,
 					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", "/routing/v1/events"),
+						ghttp.RespondWith(http.StatusOK, ""),
+					),
+				)
+				server.SetHandler(1,
+					ghttp.CombineHandlers(
 						ghttp.RespondWith(http.StatusOK, ""),
 					),
 				)
@@ -250,8 +282,111 @@ var _ = Describe("Main", func() {
 				session := routeRegistrar(command...)
 
 				Eventually(session, "2s").Should(Exit(0))
-				Expect(server.ReceivedRequests()).To(HaveLen(1))
-				Expect(string(session.Err.Contents())).To(ContainSubstring("Connection closed: "))
+				Expect(server.ReceivedRequests()).To(HaveLen(2))
+				Expect(string(session.Out.Contents())).To(ContainSubstring("Connection closed: "))
+			})
+
+			Context("when --http flag is provided", func() {
+				var flagsWithHttp []string
+
+				BeforeEach(func() {
+					flagsWithHttp = append(flags, "--http")
+				})
+
+				It("subscribes to HTTP events", func() {
+					command := buildCommand("events", flagsWithHttp, []string{})
+
+					session := routeRegistrar(command...)
+
+					Eventually(session, "2s").Should(Exit(0))
+					Expect(server.ReceivedRequests()).To(HaveLen(1))
+					Expect(string(session.Out.Contents())).To(ContainSubstring(string(httpEventString)))
+					Expect(string(session.Out.Contents())).NotTo(ContainSubstring(string(tcpEventString)))
+				})
+			})
+
+			Context("when --tcp flag is provided", func() {
+				var flagsWithTcp []string
+
+				BeforeEach(func() {
+					server.SetHandler(0,
+						ghttp.CombineHandlers(
+							ghttp.VerifyRequest("GET", "/routing/v1/tcp_routes/events"),
+							ghttp.RespondWith(http.StatusOK, sseEventTcp.Encode(), headers),
+						),
+					)
+					flagsWithTcp = append(flags, "--tcp")
+				})
+
+				It("subscribes to TCP events", func() {
+					command := buildCommand("events", flagsWithTcp, []string{})
+
+					session := routeRegistrar(command...)
+
+					Eventually(session, "2s").Should(Exit(0))
+					Expect(server.ReceivedRequests()).To(HaveLen(1))
+					Expect(string(session.Out.Contents())).To(ContainSubstring(string(tcpEventString)))
+					Expect(string(session.Out.Contents())).NotTo(ContainSubstring(string(httpEventString)))
+				})
+			})
+
+			Context("when both --http and --tcp flags are provided", func() {
+				var flagsWithAllProtocols []string
+
+				BeforeEach(func() {
+					eventHandler := func(w http.ResponseWriter, req *http.Request) {
+						w.WriteHeader(http.StatusOK)
+
+						if req.URL.Path == "/routing/v1/events" {
+							w.Write([]byte(sseEvent.Encode()))
+						} else {
+							w.Write([]byte(sseEventTcp.Encode()))
+						}
+					}
+
+					server.SetHandler(0, eventHandler)
+					server.SetHandler(1, eventHandler)
+
+					flagsWithAllProtocols = append(flags, "--http", "--tcp")
+				})
+
+				It("subscribes to HTTP and TCP events", func() {
+					command := buildCommand("events", flagsWithAllProtocols, []string{})
+
+					session := routeRegistrar(command...)
+
+					Eventually(session, "2s").Should(Exit(0))
+					Expect(server.ReceivedRequests()).To(HaveLen(2))
+					Expect(string(session.Out.Contents())).To(ContainSubstring(string(tcpEventString)))
+					Expect(string(session.Out.Contents())).To(ContainSubstring(string(httpEventString)))
+				})
+			})
+
+			Context("when no protocol specific flag is provided", func() {
+				BeforeEach(func() {
+					eventHandler := func(w http.ResponseWriter, req *http.Request) {
+						w.WriteHeader(http.StatusOK)
+
+						if req.URL.Path == "/routing/v1/events" {
+							w.Write([]byte(sseEvent.Encode()))
+						} else {
+							w.Write([]byte(sseEventTcp.Encode()))
+						}
+					}
+
+					server.SetHandler(0, eventHandler)
+					server.SetHandler(1, eventHandler)
+				})
+				It("subscribes to HTTP and TCP events", func() {
+					command := buildCommand("events", flags, []string{})
+
+					session := routeRegistrar(command...)
+
+					Eventually(session, "2s").Should(Exit(0))
+					Expect(server.ReceivedRequests()).To(HaveLen(2))
+					Expect(string(session.Out.Contents())).To(ContainSubstring(string(tcpEventString)))
+					Expect(string(session.Out.Contents())).To(ContainSubstring(string(httpEventString)))
+				})
 			})
 		})
 
@@ -480,7 +615,7 @@ var _ = Describe("Main", func() {
 				session := routeRegistrar(command...)
 
 				Eventually(session).Should(Exit(3))
-				Eventually(session).Should(Say("streaming events failed:"))
+				Eventually(session).Should(Say("Error fetching oauth token:"))
 			})
 		})
 
