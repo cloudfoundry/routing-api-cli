@@ -91,7 +91,7 @@ func main() {
 	app.Authors = authors
 	app.Commands = cliCommands
 	app.CommandNotFound = commandNotFound
-	app.Version = "2.1.0"
+	app.Version = "2.2.0"
 
 	cli.AppHelpTemplate = cli.AppHelpTemplate + environmentVariableHelp + "\n"
 

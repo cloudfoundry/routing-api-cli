@@ -34,7 +34,7 @@ Each command has required arguments and route structure.
 
 Required arguments:
 
-**--api**: the routing API endpoint, e.g. `http://routing-api.10.244.0.34.xip.io`<br />
+**--api**: the routing API endpoint, e.g. `http://api.10.244.0.34.xip.io`<br />
 **--client-id**: the id of the client registered with your OAuth provider with the [proper authorities](https://github.com/cloudfoundry-incubator/routing-api#oauth-clients), e.g. `routing_api_client`<br />
 **--client-secret**: your OAuth client secret, e.g. `route_secret`<br />
 **--oauth-url**: the OAuth provider endpoint with optional port, e.g. `http://uaa.10.244.0.34.xip.io`
@@ -76,9 +76,9 @@ Notes:
 ###Examples
 
 ```bash
-rtr list --api https://routing-api.example.com --client-id admin --client-secret admin-secret --oauth-url https://uaa.example.com
+rtr list --api https://api.example.com --client-id admin --client-secret admin-secret --oauth-url https://uaa.example.com
 
-rtr register --api https://routing-api.example.com --client-id admin --client-secret admin-secret --oauth-url https://uaa.example.com '[{"route":"mynewroute.com","port":12345,"ip":"1.2.3.4","ttl":60}]'
+rtr register --api https://api.example.com --client-id admin --client-secret admin-secret --oauth-url https://uaa.example.com '[{"route":"mynewroute.com","port":12345,"ip":"1.2.3.4","ttl":60}]'
 
-rtr unregister --api https://routing-api.example.com --client-id admin --client-secret admin-secret --oauth-url https://uaa.example.com '[{"route":"undesiredroute.com","port":12345,"ip":"1.2.3.4"}]'
+rtr unregister --api https://api.example.com --client-id admin --client-secret admin-secret --oauth-url https://uaa.example.com '[{"route":"undesiredroute.com","port":12345,"ip":"1.2.3.4"}]'
 ```
