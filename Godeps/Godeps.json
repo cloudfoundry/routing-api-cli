@@ -20,7 +20,7 @@
 		},
 		{
 			"ImportPath": "github.com/cloudfoundry-incubator/routing-api",
-			"Rev": "bb0f1a27e5f55e4c93cb5a983843168730ffda72"
+			"Rev": "857e95689af0290973c84a892e7bc135be44097f"
 		},
 		{
 			"ImportPath": "github.com/cloudfoundry-incubator/trace-logger",
