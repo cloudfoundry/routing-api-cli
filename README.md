@@ -17,14 +17,11 @@ See [Releases](https://github.com/cloudfoundry-incubator/routing-api-cli/release
 ### Compile
 
 - Go should be installed and in the PATH
-- GOPATH should be set as described in http://golang.org/doc/code.html
-- [godep](https://github.com/tools/godep) installed and in the PATH
-
+- Checkout code and set GOPATH based on [cf-routing-release](https://github.com/cloudfoundry-incubator/cf-routing-release#-get-the-code)
 - Build the binary, and place it in your gopath:
 
   ```bash
-  go get github.com/cloudfoundry-incubator/routing-api-cli
-  godep restore
+  cd $GOPATH/src/github.com/cloudfoundry-incubator/routing-api-cli
   go build -o $GOPATH/bin/rtr
   ```
 
