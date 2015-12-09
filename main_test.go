@@ -8,10 +8,10 @@ import (
 
 	"os"
 
-	"code.google.com/p/go-uuid/uuid"
 	"github.com/cloudfoundry-incubator/routing-api"
 	"github.com/cloudfoundry-incubator/routing-api/db"
 	token_fetcher "github.com/cloudfoundry-incubator/uaa-token-fetcher"
+	uuid "github.com/nu7hatch/gouuid"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gbytes"
@@ -42,7 +42,9 @@ var _ = Describe("Main", func() {
 		BeforeEach(func() {
 			server = ghttp.NewServer()
 			authServer = ghttp.NewServer()
-			token = uuid.NewUUID().String()
+			tokenUuid, err := uuid.NewV4()
+			Expect(err).NotTo(HaveOccurred())
+			token = tokenUuid.String()
 			responseBody := &token_fetcher.Token{
 				AccessToken: token,
 				ExpireTime:  20,
