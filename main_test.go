@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os/exec"
+	"time"
 
 	"os"
 
@@ -598,8 +599,8 @@ var _ = Describe("Main", func() {
 				command := buildCommand("unregister", flags, []string{"[{}]"})
 				session := routeRegistrar(command...)
 
-				Eventually(session).Should(Exit(3))
 				Eventually(session).Should(Say("route unregistration failed:"))
+				Eventually(session, 5*time.Second).Should(Exit(3))
 			})
 		})
 

@@ -7,7 +7,7 @@ import (
 )
 
 func List(client routing_api.Client, tokenFetcher token_fetcher.TokenFetcher) ([]db.Route, error) {
-	token, err := tokenFetcher.FetchToken()
+	token, err := tokenFetcher.FetchToken(false)
 	if err != nil {
 		return nil, err
 	}

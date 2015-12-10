@@ -7,7 +7,7 @@ import (
 )
 
 func UnRegister(client routing_api.Client, tokenFetcher token_fetcher.TokenFetcher, routes []db.Route) error {
-	token, err := tokenFetcher.FetchToken()
+	token, err := tokenFetcher.FetchToken(false)
 	if err != nil {
 		return err
 	}

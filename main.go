@@ -2,21 +2,30 @@ package main
 
 import (
 	"encoding/json"
+	"flag"
 	"fmt"
 	"net/url"
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
+	"github.com/cloudfoundry-incubator/cf-lager"
 	"github.com/cloudfoundry-incubator/routing-api"
 	"github.com/cloudfoundry-incubator/routing-api-cli/commands"
 	"github.com/cloudfoundry-incubator/routing-api/db"
 	trace "github.com/cloudfoundry-incubator/trace-logger"
 	token_fetcher "github.com/cloudfoundry-incubator/uaa-token-fetcher"
 	"github.com/codegangsta/cli"
+	"github.com/pivotal-golang/clock"
 )
 
-const RTR_TRACE = "RTR_TRACE"
+const (
+	RTR_TRACE                      = "RTR_TRACE"
+	DefaultTokenFetchRetryInterval = 5 * time.Second
+	DefaultTokenFetchNumRetries    = uint32(1)
+	DefaultExpirationBufferTime    = int64(30)
+)
 
 var flags = []cli.Flag{
 	cli.StringFlag{
@@ -83,6 +92,7 @@ var environmentVariableHelp = `ENVIRONMENT VARIABLES:
    RTR_TRACE=true	Print API request diagnostics to stdout`
 
 func main() {
+	cf_lager.AddFlags(flag.CommandLine)
 	fmt.Println()
 	app := cli.NewApp()
 	app.Name = "rtr"
@@ -111,9 +121,6 @@ func registerRoutes(c *cli.Context) {
 
 	client := routing_api.NewClient(c.String("api"))
 
-	config := buildOauthConfig(c)
-	fetcher := token_fetcher.NewTokenFetcher(&config)
-
 	desiredRoutes := c.Args().First()
 	var routes []db.Route
 
@@ -122,6 +129,8 @@ func registerRoutes(c *cli.Context) {
 		fmt.Println("Invalid json format.")
 		os.Exit(3)
 	}
+
+	fetcher := createTokenFetcher(c)
 
 	err = commands.Register(client, fetcher, routes)
 	if err != nil {
@@ -142,9 +151,6 @@ func unregisterRoutes(c *cli.Context) {
 
 	client := routing_api.NewClient(c.String("api"))
 
-	config := buildOauthConfig(c)
-	fetcher := token_fetcher.NewTokenFetcher(&config)
-
 	desiredRoutes := c.Args().First()
 	var routes []db.Route
 	err := json.Unmarshal([]byte(desiredRoutes), &routes)
@@ -152,6 +158,8 @@ func unregisterRoutes(c *cli.Context) {
 		fmt.Println("Invalid json format.")
 		os.Exit(3)
 	}
+
+	fetcher := createTokenFetcher(c)
 
 	err = commands.UnRegister(client, fetcher, routes)
 	if err != nil {
@@ -172,8 +180,8 @@ func listRoutes(c *cli.Context) {
 
 	client := routing_api.NewClient(c.String("api"))
 
-	config := buildOauthConfig(c)
-	fetcher := token_fetcher.NewTokenFetcher(&config)
+	fetcher := createTokenFetcher(c)
+
 	routes, err := commands.List(client, fetcher)
 	if err != nil {
 		fmt.Println("listing routes failed:", err)
@@ -203,9 +211,9 @@ func streamEvents(c *cli.Context) {
 
 	client := routing_api.NewClient(c.String("api"))
 
-	config := buildOauthConfig(c)
-	fetcher := token_fetcher.NewTokenFetcher(&config)
-	token, err := fetcher.FetchToken()
+	fetcher := createTokenFetcher(c)
+
+	token, err := fetcher.FetchToken(false)
 	if err != nil {
 		fmt.Println("Error fetching oauth token:", err)
 		os.Exit(3)
@@ -362,4 +370,22 @@ func printHelpForCommand(c *cli.Context, issues []string, cmd string) {
 func commandNotFound(c *cli.Context, cmd string) {
 	fmt.Println("Not a valid command:", cmd)
 	os.Exit(1)
+}
+
+func createTokenFetcher(c *cli.Context) token_fetcher.TokenFetcher {
+	config := buildOauthConfig(c)
+	clock := clock.NewClock()
+	logger, _ := cf_lager.New("rtr")
+	tokenFetcherConfig := token_fetcher.TokenFetcherConfig{
+		MaxNumberOfRetries:   DefaultTokenFetchNumRetries,
+		RetryInterval:        DefaultTokenFetchRetryInterval,
+		ExpirationBufferTime: DefaultExpirationBufferTime,
+	}
+
+	fetcher, err := token_fetcher.NewTokenFetcher(logger, &config, tokenFetcherConfig, clock)
+	if err != nil {
+		fmt.Println("Error getting uaa token fetcher.")
+		os.Exit(3)
+	}
+	return fetcher
 }
