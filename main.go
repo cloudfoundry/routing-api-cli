@@ -6,16 +6,16 @@ import (
 	"fmt"
 	"net/url"
 	"os"
-	"strconv"
-	"strings"
 	"time"
+
+	uaaclient "github.com/cloudfoundry-incubator/uaa-go-client"
+	uaaconfig "github.com/cloudfoundry-incubator/uaa-go-client/config"
 
 	"github.com/cloudfoundry-incubator/cf-lager"
 	"github.com/cloudfoundry-incubator/routing-api"
 	"github.com/cloudfoundry-incubator/routing-api-cli/commands"
 	"github.com/cloudfoundry-incubator/routing-api/db"
 	trace "github.com/cloudfoundry-incubator/trace-logger"
-	token_fetcher "github.com/cloudfoundry-incubator/uaa-token-fetcher"
 	"github.com/codegangsta/cli"
 	"github.com/pivotal-golang/clock"
 )
@@ -43,6 +43,10 @@ var flags = []cli.Flag{
 	cli.StringFlag{
 		Name:  "oauth-url",
 		Usage: "URL for OAuth client. (required)",
+	},
+	cli.BoolFlag{
+		Name:  "skip-oauth-tls-verification",
+		Usage: "Skip OAuth TLS Verification (optional)",
 	},
 }
 
@@ -113,64 +117,53 @@ func main() {
 
 func registerRoutes(c *cli.Context) {
 	issues := checkFlags(c)
+	errorMessage := "route registration failed:"
 	issues = append(issues, checkArguments(c, "register")...)
 
 	if len(issues) > 0 {
 		printHelpForCommand(c, issues, "register")
 	}
 
-	client := routing_api.NewClient(c.String("api"))
-
 	desiredRoutes := c.Args().First()
 	var routes []db.Route
 
 	err := json.Unmarshal([]byte(desiredRoutes), &routes)
-	if err != nil {
-		fmt.Println("Invalid json format.")
-		os.Exit(3)
-	}
+	checkError(errorMessage, err)
 
-	fetcher := createTokenFetcher(c)
+	client, err := newRoutingApiClient(c)
+	checkError(errorMessage, err)
 
-	err = commands.Register(client, fetcher, routes)
-	if err != nil {
-		fmt.Println("route registration failed:", err)
-		os.Exit(3)
-	}
+	err = commands.Register(client, routes)
+	checkError(errorMessage, err)
 
 	fmt.Printf("Successfully registered routes: %s\n", desiredRoutes)
 }
 
 func unregisterRoutes(c *cli.Context) {
 	issues := checkFlags(c)
+	errorMessage := "route unregistration failed:"
 	issues = append(issues, checkArguments(c, "unregister")...)
 
 	if len(issues) > 0 {
 		printHelpForCommand(c, issues, "unregister")
 	}
 
-	client := routing_api.NewClient(c.String("api"))
-
 	desiredRoutes := c.Args().First()
 	var routes []db.Route
 	err := json.Unmarshal([]byte(desiredRoutes), &routes)
-	if err != nil {
-		fmt.Println("Invalid json format.")
-		os.Exit(3)
-	}
+	checkError(errorMessage, err)
 
-	fetcher := createTokenFetcher(c)
+	client, err := newRoutingApiClient(c)
+	checkError(errorMessage, err)
 
-	err = commands.UnRegister(client, fetcher, routes)
-	if err != nil {
-		fmt.Println("route unregistration failed:", err)
-		os.Exit(3)
-	}
+	err = commands.UnRegister(client, routes)
+	checkError(errorMessage, err)
 
 	fmt.Printf("Successfully unregistered routes: %s\n", desiredRoutes)
 }
 
 func listRoutes(c *cli.Context) {
+	errorMessage := "listing routes failed:"
 	issues := checkFlags(c)
 	issues = append(issues, checkArguments(c, "list")...)
 
@@ -178,11 +171,10 @@ func listRoutes(c *cli.Context) {
 		printHelpForCommand(c, issues, "list")
 	}
 
-	client := routing_api.NewClient(c.String("api"))
+	client, err := newRoutingApiClient(c)
+	checkError(errorMessage, err)
 
-	fetcher := createTokenFetcher(c)
-
-	routes, err := commands.List(client, fetcher)
+	routes, err := commands.List(client)
 	if err != nil {
 		fmt.Println("listing routes failed:", err)
 		os.Exit(3)
@@ -209,17 +201,8 @@ func streamEvents(c *cli.Context) {
 		streamTcp = true
 	}
 
-	client := routing_api.NewClient(c.String("api"))
-
-	fetcher := createTokenFetcher(c)
-
-	token, err := fetcher.FetchToken(false)
-	if err != nil {
-		fmt.Println("Error fetching oauth token:", err)
-		os.Exit(3)
-	}
-
-	client.SetToken(token.AccessToken)
+	client, err := newRoutingApiClient(c)
+	checkError("streaming events failed:", err)
 	errorChan := make(chan error)
 	eventChan := make(chan string)
 
@@ -288,28 +271,18 @@ func streamTcpEvents(client routing_api.Client, eventChan chan string, errorChan
 	}
 }
 
-func buildOauthConfig(c *cli.Context) token_fetcher.OAuthConfig {
-	var port int
-	oauthUrl, _ := url.Parse(c.String("oauth-url"))
-	addr := strings.Split(oauthUrl.Host, ":")
-	host := addr[0]
+func buildOauthConfig(c *cli.Context) *uaaconfig.Config {
 
-	if len(addr) > 1 {
-		port, _ = strconv.Atoi(addr[1])
-	} else {
-		if strings.ToLower(oauthUrl.Scheme) == "https" {
-			port = 443
-		} else if strings.ToLower(oauthUrl.Scheme) == "http" {
-			port = 80
-		}
+	return &uaaconfig.Config{
+		UaaEndpoint:           c.String("oauth-url"),
+		SkipVerification:      c.Bool("skip-oauth-tls-verification"),
+		ClientName:            c.String("client-id"),
+		ClientSecret:          c.String("client-secret"),
+		MaxNumberOfRetries:    3,
+		RetryInterval:         500 * time.Millisecond,
+		ExpirationBufferInSec: 30,
 	}
 
-	return token_fetcher.OAuthConfig{
-		TokenEndpoint: oauthUrl.Scheme + "://" + host,
-		ClientName:    c.String("client-id"),
-		ClientSecret:  c.String("client-secret"),
-		Port:          port,
-	}
 }
 
 func checkFlags(c *cli.Context) []string {
@@ -372,20 +345,44 @@ func commandNotFound(c *cli.Context, cmd string) {
 	os.Exit(1)
 }
 
-func createTokenFetcher(c *cli.Context) token_fetcher.TokenFetcher {
-	config := buildOauthConfig(c)
-	clock := clock.NewClock()
-	logger, _ := cf_lager.New("rtr")
-	tokenFetcherConfig := token_fetcher.TokenFetcherConfig{
-		MaxNumberOfRetries:   DefaultTokenFetchNumRetries,
-		RetryInterval:        DefaultTokenFetchRetryInterval,
-		ExpirationBufferTime: DefaultExpirationBufferTime,
+func newRoutingApiClient(c *cli.Context) (routing_api.Client, error) {
+
+	uaaClient, err := newUaaClient(c)
+	if err != nil {
+		return nil, err
 	}
 
-	fetcher, err := token_fetcher.NewTokenFetcher(logger, &config, tokenFetcherConfig, clock)
+	token, err := uaaClient.FetchToken(true)
 	if err != nil {
-		fmt.Println("Error getting uaa token fetcher.")
+		return nil, err
+	}
+
+	routingApiClient := routing_api.NewClient(c.String("api"))
+
+	routingApiClient.SetToken(token.AccessToken)
+
+	return routingApiClient, nil
+
+}
+
+func checkError(message string, err error) {
+	if err != nil {
+		fmt.Println(message, err.Error())
 		os.Exit(3)
 	}
-	return fetcher
+}
+
+func newUaaClient(c *cli.Context) (uaaclient.Client, error) {
+
+	logger, _ := cf_lager.New("rtr")
+	cfg := buildOauthConfig(c)
+	klok := clock.NewClock()
+
+	uaaClient, err := uaaclient.NewClient(logger, cfg, klok)
+	if err != nil {
+		return nil, err
+	}
+	_, err = uaaClient.FetchToken(true)
+
+	return uaaClient, nil
 }

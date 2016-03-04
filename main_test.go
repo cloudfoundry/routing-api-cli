@@ -11,8 +11,6 @@ import (
 
 	"github.com/cloudfoundry-incubator/routing-api"
 	"github.com/cloudfoundry-incubator/routing-api/db"
-	token_fetcher "github.com/cloudfoundry-incubator/uaa-token-fetcher"
-	uuid "github.com/nu7hatch/gouuid"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gbytes"
@@ -43,25 +41,16 @@ var _ = Describe("Main", func() {
 		BeforeEach(func() {
 			server = ghttp.NewServer()
 			authServer = ghttp.NewServer()
-			tokenUuid, err := uuid.NewV4()
-			Expect(err).NotTo(HaveOccurred())
-			token = tokenUuid.String()
-			responseBody := &token_fetcher.Token{
-				AccessToken: token,
-				ExpireTime:  20,
-			}
+			token = "some-token"
+			authServer = ghttp.NewTLSServer()
+			authServer.AllowUnhandledRequests = true
+			authServer.UnhandledRequestStatusCode = http.StatusOK
 
-			authServer.AppendHandlers(
-				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("POST", "/oauth/token"),
-					ghttp.VerifyBasicAuth("some-name", "some-secret"),
-					ghttp.VerifyContentType("application/x-www-form-urlencoded; charset=UTF-8"),
-					ghttp.VerifyHeader(http.Header{
-						"Accept": []string{"application/json; charset=utf-8"},
-					}),
-					verifyBody("grant_type=client_credentials"),
-					ghttp.RespondWithJSONEncoded(http.StatusOK, responseBody),
-				))
+			authServer.RouteToHandler("POST", "/oauth/token",
+				func(w http.ResponseWriter, req *http.Request) {
+					jsonBytes := []byte(`{"access_token":"some-token", "expires_in":10}`)
+					w.Write(jsonBytes)
+				})
 
 			server.AppendHandlers(
 				ghttp.CombineHandlers(
@@ -85,6 +74,7 @@ var _ = Describe("Main", func() {
 				"-client-id", "some-name",
 				"-client-secret", "some-secret",
 				"-oauth-url", authServer.URL(),
+				"--skip-oauth-tls-verification",
 			}
 		})
 
@@ -398,7 +388,6 @@ var _ = Describe("Main", func() {
 			session := routeRegistrar(command...)
 
 			Eventually(session, "2s").Should(Exit(0))
-			Expect(authServer.ReceivedRequests()).To(HaveLen(1))
 			Expect(server.ReceivedRequests()).To(HaveLen(1))
 		})
 
@@ -474,6 +463,7 @@ var _ = Describe("Main", func() {
 				"-client-id", "some-name",
 				"-client-secret", "some-secret",
 				"-oauth-url", "http://some.oauth.url",
+				"--skip-oauth-tls-verification",
 			}
 		})
 
@@ -550,7 +540,7 @@ var _ = Describe("Main", func() {
 				session := routeRegistrar(command...)
 
 				Eventually(session).Should(Exit(3))
-				Eventually(session).Should(Say("Invalid json format."))
+				Eventually(session).Should(Say("unexpected end of JSON input"))
 			})
 
 			It("fails if there are unexpected arguments", func() {
@@ -565,7 +555,7 @@ var _ = Describe("Main", func() {
 				command := buildCommand("register", flags, []string{"[{}]"})
 				session := routeRegistrar(command...)
 
-				Eventually(session).Should(Exit(3))
+				Eventually(session, 5*time.Second).Should(Exit(3))
 				Eventually(session).Should(Say("route registration failed:"))
 			})
 		})
@@ -584,7 +574,7 @@ var _ = Describe("Main", func() {
 				session := routeRegistrar(command...)
 
 				Eventually(session).Should(Exit(3))
-				Eventually(session).Should(Say("Invalid json format."))
+				Eventually(session).Should(Say("unexpected end of JSON input"))
 			})
 
 			It("fails if there are unexpected arguments", func() {
@@ -599,7 +589,7 @@ var _ = Describe("Main", func() {
 				command := buildCommand("unregister", flags, []string{"[{}]"})
 				session := routeRegistrar(command...)
 
-				Eventually(session).Should(Say("route unregistration failed:"))
+				Eventually(session, 5*time.Second).Should(Say("route unregistration failed:"))
 				Eventually(session, 5*time.Second).Should(Exit(3))
 			})
 		})
@@ -617,8 +607,8 @@ var _ = Describe("Main", func() {
 				command := buildCommand("events", flags, []string{})
 				session := routeRegistrar(command...)
 
-				Eventually(session).Should(Exit(3))
-				Eventually(session).Should(Say("Error fetching oauth token:"))
+				Eventually(session, 5*time.Second).Should(Exit(3))
+				Eventually(session).Should(Say("streaming events failed"))
 			})
 		})
 
@@ -635,7 +625,7 @@ var _ = Describe("Main", func() {
 				command := buildCommand("list", flags, []string{})
 				session := routeRegistrar(command...)
 
-				Eventually(session).Should(Exit(3))
+				Eventually(session, 5*time.Second).Should(Exit(3))
 				Eventually(session).Should(Say("listing routes failed:"))
 			})
 		})
