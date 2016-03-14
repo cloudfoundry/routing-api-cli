@@ -4,8 +4,8 @@ import (
 	"errors"
 
 	"github.com/cloudfoundry-incubator/routing-api-cli/commands"
-	"github.com/cloudfoundry-incubator/routing-api/db"
 	"github.com/cloudfoundry-incubator/routing-api/fake_routing_api"
+	"github.com/cloudfoundry-incubator/routing-api/models"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -13,13 +13,13 @@ import (
 var _ = Describe(".List", func() {
 	var (
 		client *fake_routing_api.FakeClient
-		route  db.Route
-		routes []db.Route
+		route  models.Route
+		routes []models.Route
 	)
 
 	BeforeEach(func() {
 		client = &fake_routing_api.FakeClient{}
-		route = db.Route{
+		route = models.Route{
 			Route:   "post_here",
 			Port:    7000,
 			IP:      "1.2.3.4",

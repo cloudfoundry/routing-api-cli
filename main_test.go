@@ -10,7 +10,7 @@ import (
 	"os"
 
 	"github.com/cloudfoundry-incubator/routing-api"
-	"github.com/cloudfoundry-incubator/routing-api/db"
+	"github.com/cloudfoundry-incubator/routing-api/models"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gbytes"
@@ -169,7 +169,7 @@ var _ = Describe("Main", func() {
 		})
 
 		It("Lists the routes", func() {
-			routes := []db.Route{
+			routes := []models.Route{
 				{Route: "llama.example.com", Port: 0, IP: "", TTL: 5, LogGuid: "yo"},
 				{Route: "example.com", Port: 8, IP: "11", TTL: 0},
 			}
@@ -207,7 +207,7 @@ var _ = Describe("Main", func() {
 
 				httpEvent = routing_api.Event{
 					Action: "Delete",
-					Route: db.Route{
+					Route: models.Route{
 						Route:           "z.a.k",
 						Port:            63,
 						IP:              "42.42.42.42",
@@ -219,8 +219,8 @@ var _ = Describe("Main", func() {
 
 				tcpEvent = routing_api.TcpEvent{
 					Action: "Upsert",
-					TcpRouteMapping: db.TcpRouteMapping{
-						TcpRoute: db.TcpRoute{
+					TcpRouteMapping: models.TcpRouteMapping{
+						TcpRoute: models.TcpRoute{
 							RouterGroupGuid: "some-guid",
 							ExternalPort:    1234,
 						},
@@ -395,7 +395,7 @@ var _ = Describe("Main", func() {
 			Context("RTR_TRACE", func() {
 				var session *Session
 				BeforeEach(func() {
-					routes := []db.Route{
+					routes := []models.Route{
 						{Route: "llama.example.com", Port: 0, IP: "", TTL: 5, LogGuid: "yo"},
 						{Route: "example.com", Port: 8, IP: "11", TTL: 0},
 					}

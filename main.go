@@ -8,13 +8,13 @@ import (
 	"os"
 	"time"
 
+	"github.com/cloudfoundry-incubator/routing-api/models"
 	uaaclient "github.com/cloudfoundry-incubator/uaa-go-client"
 	uaaconfig "github.com/cloudfoundry-incubator/uaa-go-client/config"
 
 	"github.com/cloudfoundry-incubator/cf-lager"
 	"github.com/cloudfoundry-incubator/routing-api"
 	"github.com/cloudfoundry-incubator/routing-api-cli/commands"
-	"github.com/cloudfoundry-incubator/routing-api/db"
 	trace "github.com/cloudfoundry-incubator/trace-logger"
 	"github.com/codegangsta/cli"
 	"github.com/pivotal-golang/clock"
@@ -125,7 +125,7 @@ func registerRoutes(c *cli.Context) {
 	}
 
 	desiredRoutes := c.Args().First()
-	var routes []db.Route
+	var routes []models.Route
 
 	err := json.Unmarshal([]byte(desiredRoutes), &routes)
 	checkError(errorMessage, err)
@@ -149,7 +149,7 @@ func unregisterRoutes(c *cli.Context) {
 	}
 
 	desiredRoutes := c.Args().First()
-	var routes []db.Route
+	var routes []models.Route
 	err := json.Unmarshal([]byte(desiredRoutes), &routes)
 	checkError(errorMessage, err)
 

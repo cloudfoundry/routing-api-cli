@@ -2,8 +2,8 @@ package commands_test
 
 import (
 	"github.com/cloudfoundry-incubator/routing-api-cli/commands"
-	"github.com/cloudfoundry-incubator/routing-api/db"
 	"github.com/cloudfoundry-incubator/routing-api/fake_routing_api"
+	"github.com/cloudfoundry-incubator/routing-api/models"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -18,7 +18,7 @@ var _ = Describe(".Register", func() {
 	})
 
 	It("registers routes", func() {
-		routes := []db.Route{{}}
+		routes := []models.Route{{}}
 		commands.Register(client, routes)
 		Expect(client.UpsertRoutesCallCount()).To(Equal(1))
 		Expect(client.UpsertRoutesArgsForCall(0)).To(Equal(routes))
