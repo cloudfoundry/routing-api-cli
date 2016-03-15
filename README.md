@@ -36,6 +36,9 @@ Required arguments:
 **--client-secret**: your OAuth client secret, e.g. `route_secret`<br />
 **--oauth-url**: the OAuth provider endpoint with optional port, e.g. `http://uaa.10.244.0.34.xip.io`
 
+Optional arguments:
+**--skip_oauth_tls_verification**: Skip TLS verification when talking to UAA
+
 Routes are described as JSON: `'[{"route":"foo.com","port":65340,"ip":"1.2.3.4","ttl":60, "route_service_url":"https://route-service.example.cf-app.com"}]'`
 
 ### List Routes
