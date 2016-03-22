@@ -45,7 +45,7 @@ var flags = []cli.Flag{
 		Usage: "URL for OAuth client. (required)",
 	},
 	cli.BoolFlag{
-		Name:  "skip-oauth-tls-verification",
+		Name:  "skip-tls-verification",
 		Usage: "Skip OAuth TLS Verification (optional)",
 	},
 }
@@ -275,7 +275,7 @@ func buildOauthConfig(c *cli.Context) *uaaconfig.Config {
 
 	return &uaaconfig.Config{
 		UaaEndpoint:           c.String("oauth-url"),
-		SkipVerification:      c.Bool("skip-oauth-tls-verification"),
+		SkipVerification:      c.Bool("skip-tls-verification"),
 		ClientName:            c.String("client-id"),
 		ClientSecret:          c.String("client-secret"),
 		MaxNumberOfRetries:    3,

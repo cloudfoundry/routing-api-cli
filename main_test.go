@@ -74,7 +74,7 @@ var _ = Describe("Main", func() {
 				"-client-id", "some-name",
 				"-client-secret", "some-secret",
 				"-oauth-url", authServer.URL(),
-				"--skip-oauth-tls-verification",
+				"--skip-tls-verification",
 			}
 		})
 
@@ -463,7 +463,7 @@ var _ = Describe("Main", func() {
 				"-client-id", "some-name",
 				"-client-secret", "some-secret",
 				"-oauth-url", "http://some.oauth.url",
-				"--skip-oauth-tls-verification",
+				"--skip-tls-verification",
 			}
 		})
 
