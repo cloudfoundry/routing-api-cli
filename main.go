@@ -27,6 +27,11 @@ const (
 	DefaultExpirationBufferTime    = int64(30)
 )
 
+var skipVerificationFlag = cli.BoolFlag{
+	Name:  "skip-tls-verification, k",
+	Usage: "Skip OAuth TLS Verification (optional)",
+}
+
 var flags = []cli.Flag{
 	cli.StringFlag{
 		Name:  "api",
@@ -44,10 +49,7 @@ var flags = []cli.Flag{
 		Name:  "oauth-url",
 		Usage: "URL for OAuth client. (required)",
 	},
-	cli.BoolFlag{
-		Name:  "skip-tls-verification",
-		Usage: "Skip OAuth TLS Verification (optional)",
-	},
+	skipVerificationFlag,
 }
 
 var eventsFlags = []cli.Flag{
@@ -106,6 +108,7 @@ func main() {
 	app.Commands = cliCommands
 	app.CommandNotFound = commandNotFound
 	app.Version = "2.4.0"
+	app.Flags = []cli.Flag{skipVerificationFlag}
 
 	cli.AppHelpTemplate = cli.AppHelpTemplate + environmentVariableHelp + "\n"
 
