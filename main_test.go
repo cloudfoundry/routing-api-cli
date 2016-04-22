@@ -96,6 +96,10 @@ var _ = Describe("Main", func() {
 							"ip":       "4",
 							"ttl":      0,
 							"log_guid": "",
+							"modification_tag": map[string]interface{}{
+								"guid":  "",
+								"index": 0,
+							},
 						},
 					}),
 					ghttp.RespondWithJSONEncoded(http.StatusOK, nil),
@@ -121,6 +125,10 @@ var _ = Describe("Main", func() {
 							"ip":       "",
 							"ttl":      5,
 							"log_guid": "yo",
+							"modification_tag": map[string]interface{}{
+								"guid":  "",
+								"index": 0,
+							},
 						},
 						{
 							"route":    "jak.com",
@@ -128,6 +136,10 @@ var _ = Describe("Main", func() {
 							"ip":       "11",
 							"ttl":      0,
 							"log_guid": "",
+							"modification_tag": map[string]interface{}{
+								"guid":  "",
+								"index": 0,
+							},
 						},
 					}),
 					ghttp.RespondWithJSONEncoded(http.StatusOK, nil),
@@ -155,6 +167,10 @@ var _ = Describe("Main", func() {
 							"ip":       "",
 							"ttl":      5,
 							"log_guid": "yo",
+							"modification_tag": map[string]interface{}{
+								"guid":  "",
+								"index": 0,
+							},
 						},
 					}),
 					ghttp.RespondWithJSONEncoded(http.StatusOK, nil),
