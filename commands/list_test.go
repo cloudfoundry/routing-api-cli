@@ -19,13 +19,7 @@ var _ = Describe(".List", func() {
 
 	BeforeEach(func() {
 		client = &fake_routing_api.FakeClient{}
-		route = models.Route{
-			Route:   "post_here",
-			Port:    7000,
-			IP:      "1.2.3.4",
-			TTL:     50,
-			LogGuid: "my-guid",
-		}
+		route = models.NewRoute("post_here", 7000, "1.2.3.4", "my-guid", "", 50)
 		routes = append(routes, route)
 		error := errors.New("this is an error")
 		client.RoutesReturns(routes, error)
