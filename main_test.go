@@ -84,7 +84,7 @@ var _ = Describe("Main", func() {
 		})
 
 		It("registers a route to the routing api", func() {
-			command := buildCommand("register", flags, []string{`[{"route":"zak.com","port":3,"ip":"4"}]`})
+			command := buildCommand("register", flags, []string{`[{"route":"zak.com","port":3,"ip":"4","ttl":1}]`})
 
 			server.SetHandler(0,
 				ghttp.CombineHandlers(
@@ -94,7 +94,7 @@ var _ = Describe("Main", func() {
 							"route":    "zak.com",
 							"port":     3,
 							"ip":       "4",
-							"ttl":      0,
+							"ttl":      1,
 							"log_guid": "",
 							"modification_tag": map[string]interface{}{
 								"guid":  "",
@@ -186,8 +186,8 @@ var _ = Describe("Main", func() {
 
 		It("Lists the routes", func() {
 			routes := []models.Route{
-				{Route: "llama.example.com", Port: 0, IP: "", TTL: 5, LogGuid: "yo"},
-				{Route: "example.com", Port: 8, IP: "11", TTL: 0},
+				models.NewRoute("llama.example.com", 0, "", "yo", "", 5),
+				models.NewRoute("example.com", 8, "11", "yo", "", 1),
 			}
 			command := buildCommand("list", flags, []string{})
 
@@ -223,14 +223,7 @@ var _ = Describe("Main", func() {
 
 				httpEvent = routing_api.Event{
 					Action: "Delete",
-					Route: models.Route{
-						Route:           "z.a.k",
-						Port:            63,
-						IP:              "42.42.42.42",
-						TTL:             1,
-						LogGuid:         "Tomato",
-						RouteServiceUrl: "https://route-service-url.com",
-					},
+					Route:  models.NewRoute("z.a.k", 63, "42.42.42.42", "Tomato", "https://route-service-url.com", 1),
 				}
 
 				tcpEvent = routing_api.TcpEvent{
@@ -412,8 +405,8 @@ var _ = Describe("Main", func() {
 				var session *Session
 				BeforeEach(func() {
 					routes := []models.Route{
-						{Route: "llama.example.com", Port: 0, IP: "", TTL: 5, LogGuid: "yo"},
-						{Route: "example.com", Port: 8, IP: "11", TTL: 0},
+						models.NewRoute("llama.example.com", 0, "", "yo", "", 5),
+						models.NewRoute("example.com", 8, "11", "yo", "", 1),
 					}
 					server.SetHandler(0,
 						ghttp.CombineHandlers(
