@@ -17,7 +17,7 @@ See [Releases](https://github.com/cloudfoundry-incubator/routing-api-cli/release
 ### Compile
 
 - Go should be installed and in the PATH
-- Checkout code and set GOPATH based on [cf-routing-release](https://github.com/cloudfoundry-incubator/cf-routing-release#-get-the-code)
+- Checkout code and set GOPATH based on [routing-release](https://github.com/cloudfoundry-incubator/routing-release#-get-the-code)
 - Build the binary, and place it in your gopath:
 
   ```bash
