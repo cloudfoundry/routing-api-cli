@@ -1,10 +1,12 @@
 package main_test
 
 import (
+	"crypto/tls"
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
 	"os/exec"
+	"path/filepath"
 	"time"
 
 	"os"
@@ -40,11 +42,21 @@ var _ = Describe("Main", func() {
 
 		BeforeEach(func() {
 			server = ghttp.NewServer()
-			authServer = ghttp.NewServer()
 			token = "some-token"
-			authServer = ghttp.NewTLSServer()
+
+			authServer = ghttp.NewUnstartedServer()
+			basePath := filepath.Join(os.Getenv("GOPATH"), "src", "github.com", "cloudfoundry-incubator", "routing-api-cli", "fixtures")
+			cert, err := tls.LoadX509KeyPair(filepath.Join(basePath, "server.pem"), filepath.Join(basePath, "server.key"))
+			Expect(err).ToNot(HaveOccurred())
+			tlsConfig := &tls.Config{
+				Certificates: []tls.Certificate{cert},
+			}
 			authServer.AllowUnhandledRequests = true
 			authServer.UnhandledRequestStatusCode = http.StatusOK
+			authServer.HTTPTestServer.TLS = tlsConfig
+			authServer.HTTPTestServer.StartTLS()
+
+			certs := filepath.Join(basePath, "ca.pem")
 
 			authServer.RouteToHandler("POST", "/oauth/token",
 				func(w http.ResponseWriter, req *http.Request) {
@@ -74,7 +86,7 @@ var _ = Describe("Main", func() {
 				"-client-id", "some-name",
 				"-client-secret", "some-secret",
 				"-oauth-url", authServer.URL(),
-				"--skip-tls-verification",
+				"--ca-certs", certs,
 			}
 		})
 
@@ -398,6 +410,27 @@ var _ = Describe("Main", func() {
 
 			Eventually(session, "2s").Should(Exit(0))
 			Expect(server.ReceivedRequests()).To(HaveLen(1))
+		})
+
+		Context("with --skip-tls-verification without a provided custom CA", func() {
+			BeforeEach(func() {
+				flags = []string{
+					"-api", server.URL(),
+					"-client-id", "some-name",
+					"-client-secret", "some-secret",
+					"-oauth-url", authServer.URL(),
+					"--skip-tls-verification",
+				}
+			})
+
+			It("Requests a token", func() {
+				command := buildCommand("register", flags, []string{"[{}]"})
+				session := routeRegistrar(command...)
+
+				Eventually(session, "2s").Should(Exit(0))
+				Expect(server.ReceivedRequests()).To(HaveLen(1))
+			})
+
 		})
 
 		Context("environment variables", func() {

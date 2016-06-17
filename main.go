@@ -50,6 +50,10 @@ var flags = []cli.Flag{
 		Usage: "URL for OAuth client. (required)",
 	},
 	skipVerificationFlag,
+	cli.StringFlag{
+		Name:  "ca-certs",
+		Usage: "CA for UAA client (optional)",
+	},
 }
 
 var eventsFlags = []cli.Flag{
@@ -284,6 +288,7 @@ func buildOauthConfig(c *cli.Context) *uaaconfig.Config {
 		MaxNumberOfRetries:    3,
 		RetryInterval:         500 * time.Millisecond,
 		ExpirationBufferInSec: 30,
+		CACerts:               c.String("ca-certs"),
 	}
 
 }
