@@ -37,7 +37,7 @@ Required arguments:
 **--oauth-url**: the OAuth provider endpoint with optional port, e.g. `http://uaa.10.244.0.34.xip.io`
 
 Optional arguments:
-**--skip-tls-verification**: Skip TLS verification when talking to UAA
+**--skip-tls-verification**: Skip TLS verification when talking to UAA and Routing API.
 
 Routes are described as JSON: `'[{"route":"foo.com","port":65340,"ip":"1.2.3.4","ttl":60, "route_service_url":"https://route-service.example.cf-app.com"}]'`
 
