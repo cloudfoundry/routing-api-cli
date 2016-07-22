@@ -404,31 +404,60 @@ var _ = Describe("Main", func() {
 			})
 		})
 
-		It("Requests a token", func() {
+		It("successfully requests a token", func() {
 			command := buildCommand("register", flags, []string{"[{}]"})
 			session := routeRegistrar(command...)
 
 			Eventually(session, "2s").Should(Exit(0))
-			Expect(server.ReceivedRequests()).To(HaveLen(1))
+			Expect(authServer.ReceivedRequests()).To(HaveLen(2))
 		})
 
 		Context("with --skip-tls-verification without a provided custom CA", func() {
+			var (
+				tlsserver *ghttp.Server
+			)
 			BeforeEach(func() {
+				tlsserver = ghttp.NewTLSServer()
 				flags = []string{
-					"-api", server.URL(),
+					"-api", tlsserver.URL(),
 					"-client-id", "some-name",
 					"-client-secret", "some-secret",
 					"-oauth-url", authServer.URL(),
 					"--skip-tls-verification",
 				}
+				tlsserver.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("POST", "/routing/v1/routes"),
+						ghttp.VerifyHeader(http.Header{
+							"Authorization": []string{"bearer " + token},
+						}),
+						ghttp.RespondWithJSONEncoded(http.StatusOK, nil),
+					),
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("POST", "/routing/v1/tcp_routes/routes"),
+						ghttp.VerifyHeader(http.Header{
+							"Authorization": []string{"bearer " + token},
+						}),
+						ghttp.RespondWithJSONEncoded(http.StatusOK, nil),
+					),
+				)
 			})
 
-			It("Requests a token", func() {
+			It("successfully requests a token", func() {
 				command := buildCommand("register", flags, []string{"[{}]"})
 				session := routeRegistrar(command...)
 
 				Eventually(session, "2s").Should(Exit(0))
-				Expect(server.ReceivedRequests()).To(HaveLen(1))
+				Expect(authServer.ReceivedRequests()).To(HaveLen(2))
+			})
+
+			It("successfully connects to routing api", func() {
+				command := buildCommand("register", flags, []string{"[{}]"})
+				session := routeRegistrar(command...)
+
+				Eventually(session, "2s").Should(Exit(0))
+				Expect(authServer.ReceivedRequests()).To(HaveLen(2))
+				Expect(tlsserver.ReceivedRequests()).To(HaveLen(1))
 			})
 
 		})

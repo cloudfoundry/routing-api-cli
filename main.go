@@ -365,10 +365,8 @@ func newRoutingApiClient(c *cli.Context) (routing_api.Client, error) {
 		return nil, err
 	}
 
-	routingApiClient := routing_api.NewClient(c.String("api"))
-
+	routingApiClient := routing_api.NewClient(c.String("api"), c.Bool("skip-tls-verification"))
 	routingApiClient.SetToken(token.AccessToken)
-
 	return routingApiClient, nil
 
 }
