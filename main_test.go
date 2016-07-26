@@ -64,23 +64,6 @@ var _ = Describe("Main", func() {
 					w.Write(jsonBytes)
 				})
 
-			server.AppendHandlers(
-				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("POST", "/routing/v1/routes"),
-					ghttp.VerifyHeader(http.Header{
-						"Authorization": []string{"bearer " + token},
-					}),
-					ghttp.RespondWithJSONEncoded(http.StatusOK, nil),
-				),
-				ghttp.CombineHandlers(
-					ghttp.VerifyRequest("POST", "/routing/v1/tcp_routes/routes"),
-					ghttp.VerifyHeader(http.Header{
-						"Authorization": []string{"bearer " + token},
-					}),
-					ghttp.RespondWithJSONEncoded(http.StatusOK, nil),
-				),
-			)
-
 			flags = []string{
 				"-api", server.URL(),
 				"-client-id", "some-name",
@@ -95,10 +78,28 @@ var _ = Describe("Main", func() {
 			server.Close()
 		})
 
+		It("successfully requests a token", func() {
+			server.AppendHandlers(
+				ghttp.CombineHandlers(
+					ghttp.VerifyRequest("POST", "/routing/v1/routes"),
+					ghttp.VerifyHeader(http.Header{
+						"Authorization": []string{"bearer " + token},
+					}),
+					ghttp.RespondWithJSONEncoded(http.StatusCreated, nil),
+				),
+			)
+
+			command := buildCommand("register", flags, []string{"[{}]"})
+			session := routeRegistrar(command...)
+
+			Eventually(session, "2s").Should(Exit(0))
+			Expect(authServer.ReceivedRequests()).To(HaveLen(2))
+		})
+
 		It("registers a route to the routing api", func() {
 			command := buildCommand("register", flags, []string{`[{"route":"zak.com","port":3,"ip":"4","ttl":1}]`})
 
-			server.SetHandler(0,
+			server.AppendHandlers(
 				ghttp.CombineHandlers(
 					ghttp.VerifyRequest("POST", "/routing/v1/routes"),
 					ghttp.VerifyJSONRepresenting([]map[string]interface{}{
@@ -114,7 +115,7 @@ var _ = Describe("Main", func() {
 							},
 						},
 					}),
-					ghttp.RespondWithJSONEncoded(http.StatusOK, nil),
+					ghttp.RespondWithJSONEncoded(http.StatusCreated, nil),
 				),
 			)
 
@@ -127,7 +128,7 @@ var _ = Describe("Main", func() {
 		It("registers multiple routes to the routing api", func() {
 			routes := `[{"route":"zak.com","port":0,"ip": "","ttl":5,"log_guid":"yo"},{"route":"jak.com","port":8,"ip":"11","ttl":0}]`
 			command := buildCommand("register", flags, []string{routes})
-			server.SetHandler(0,
+			server.AppendHandlers(
 				ghttp.CombineHandlers(
 					ghttp.VerifyRequest("POST", "/routing/v1/routes"),
 					ghttp.VerifyJSONRepresenting([]map[string]interface{}{
@@ -154,7 +155,7 @@ var _ = Describe("Main", func() {
 							},
 						},
 					}),
-					ghttp.RespondWithJSONEncoded(http.StatusOK, nil),
+					ghttp.RespondWithJSONEncoded(http.StatusCreated, nil),
 				),
 			)
 
@@ -169,7 +170,7 @@ var _ = Describe("Main", func() {
 			routes := `[{"route":"zak.com","ttl":5,"log_guid":"yo"}]`
 			command := buildCommand("unregister", flags, []string{routes})
 
-			server.SetHandler(0,
+			server.AppendHandlers(
 				ghttp.CombineHandlers(
 					ghttp.VerifyRequest("DELETE", "/routing/v1/routes"),
 					ghttp.VerifyJSONRepresenting([]map[string]interface{}{
@@ -185,7 +186,7 @@ var _ = Describe("Main", func() {
 							},
 						},
 					}),
-					ghttp.RespondWithJSONEncoded(http.StatusOK, nil),
+					ghttp.RespondWithJSONEncoded(http.StatusNoContent, nil),
 				),
 			)
 
@@ -203,7 +204,7 @@ var _ = Describe("Main", func() {
 			}
 			command := buildCommand("list", flags, []string{})
 
-			server.SetHandler(0,
+			server.AppendHandlers(
 				ghttp.CombineHandlers(
 					ghttp.VerifyRequest("GET", "/routing/v1/routes"),
 					ghttp.RespondWithJSONEncoded(http.StatusOK, routes),
@@ -222,21 +223,38 @@ var _ = Describe("Main", func() {
 
 		Context("events", func() {
 			var (
-				httpEvent       routing_api.Event
-				tcpEvent        routing_api.TcpEvent
-				httpEventString []byte
-				tcpEventString  []byte
-				sseEvent        sse.Event
-				sseEventTcp     sse.Event
-				headers         http.Header
+				httpEvent          routing_api.Event
+				tcpEvent           routing_api.TcpEvent
+				httpEventString    []byte
+				tcpEventString     []byte
+				sseEventHandler    http.HandlerFunc
+				sseEventTcpHandler http.HandlerFunc
+				headers            http.Header
 			)
 
 			BeforeEach(func() {
+				var err error
+
+				headers = make(http.Header)
+				headers.Set("Content-Type", "text/event-stream; charset=utf-8")
 
 				httpEvent = routing_api.Event{
 					Action: "Delete",
 					Route:  models.NewRoute("z.a.k", 63, "42.42.42.42", "Tomato", "https://route-service-url.com", 1),
 				}
+
+				httpEventString, err = json.Marshal(httpEvent.Route)
+				Expect(err).ToNot(HaveOccurred())
+
+				sseEvent := sse.Event{
+					Name: httpEvent.Action,
+					Data: httpEventString,
+				}
+
+				sseEventHandler = ghttp.CombineHandlers(
+					ghttp.VerifyRequest("GET", "/routing/v1/events"),
+					ghttp.RespondWith(http.StatusOK, sseEvent.Encode(), headers),
+				)
 
 				tcpEvent = routing_api.TcpEvent{
 					Action: "Upsert",
@@ -250,44 +268,26 @@ var _ = Describe("Main", func() {
 					},
 				}
 
-				var err error
-				httpEventString, err = json.Marshal(httpEvent.Route)
-				Expect(err).ToNot(HaveOccurred())
-
-				sseEvent = sse.Event{
-					Name: httpEvent.Action,
-					Data: httpEventString,
-				}
-
-				headers = make(http.Header)
-				headers.Set("Content-Type", "text/event-stream; charset=utf-8")
-
-				server.SetHandler(0,
-					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("GET", "/routing/v1/events"),
-						ghttp.RespondWith(http.StatusOK, sseEvent.Encode(), headers),
-					),
-				)
-
 				tcpEventString, err = json.Marshal(tcpEvent.TcpRouteMapping)
 				Expect(err).ToNot(HaveOccurred())
 
-				sseEventTcp = sse.Event{
+				sseEventTcp := sse.Event{
 					Name: tcpEvent.Action,
 					Data: tcpEventString,
 				}
-
+				sseEventTcpHandler = ghttp.CombineHandlers(
+					ghttp.VerifyRequest("GET", "/routing/v1/tcp_routes/events"),
+					ghttp.RespondWith(http.StatusOK, sseEventTcp.Encode(), headers),
+				)
 			})
 
 			It("emits an error message on server termination", func() {
 				command := buildCommand("events", flags, []string{})
 
-				server.SetHandler(0,
+				server.AppendHandlers(
 					ghttp.CombineHandlers(
 						ghttp.RespondWith(http.StatusOK, ""),
 					),
-				)
-				server.SetHandler(1,
 					ghttp.CombineHandlers(
 						ghttp.RespondWith(http.StatusOK, ""),
 					),
@@ -310,6 +310,8 @@ var _ = Describe("Main", func() {
 				It("subscribes to HTTP events", func() {
 					command := buildCommand("events", flagsWithHttp, []string{})
 
+					server.AppendHandlers(sseEventHandler)
+
 					session := routeRegistrar(command...)
 
 					Eventually(session, "2s").Should(Exit(0))
@@ -323,12 +325,8 @@ var _ = Describe("Main", func() {
 				var flagsWithTcp []string
 
 				BeforeEach(func() {
-					server.SetHandler(0,
-						ghttp.CombineHandlers(
-							ghttp.VerifyRequest("GET", "/routing/v1/tcp_routes/events"),
-							ghttp.RespondWith(http.StatusOK, sseEventTcp.Encode(), headers),
-						),
-					)
+
+					server.AppendHandlers(sseEventTcpHandler)
 					flagsWithTcp = append(flags, "--tcp")
 				})
 
@@ -348,18 +346,8 @@ var _ = Describe("Main", func() {
 				var flagsWithAllProtocols []string
 
 				BeforeEach(func() {
-					eventHandler := func(w http.ResponseWriter, req *http.Request) {
-						w.WriteHeader(http.StatusOK)
-
-						if req.URL.Path == "/routing/v1/events" {
-							w.Write([]byte(sseEvent.Encode()))
-						} else {
-							w.Write([]byte(sseEventTcp.Encode()))
-						}
-					}
-
-					server.SetHandler(0, eventHandler)
-					server.SetHandler(1, eventHandler)
+					server.RouteToHandler("GET", "/routing/v1/events", sseEventHandler)
+					server.RouteToHandler("GET", "/routing/v1/tcp_routes/events", sseEventTcpHandler)
 
 					flagsWithAllProtocols = append(flags, "--http", "--tcp")
 				})
@@ -378,19 +366,10 @@ var _ = Describe("Main", func() {
 
 			Context("when no protocol specific flag is provided", func() {
 				BeforeEach(func() {
-					eventHandler := func(w http.ResponseWriter, req *http.Request) {
-						w.WriteHeader(http.StatusOK)
-
-						if req.URL.Path == "/routing/v1/events" {
-							w.Write([]byte(sseEvent.Encode()))
-						} else {
-							w.Write([]byte(sseEventTcp.Encode()))
-						}
-					}
-
-					server.SetHandler(0, eventHandler)
-					server.SetHandler(1, eventHandler)
+					server.RouteToHandler("GET", "/routing/v1/events", sseEventHandler)
+					server.RouteToHandler("GET", "/routing/v1/tcp_routes/events", sseEventTcpHandler)
 				})
+
 				It("subscribes to HTTP and TCP events", func() {
 					command := buildCommand("events", flags, []string{})
 
@@ -404,43 +383,55 @@ var _ = Describe("Main", func() {
 			})
 		})
 
-		It("successfully requests a token", func() {
-			command := buildCommand("register", flags, []string{"[{}]"})
-			session := routeRegistrar(command...)
-
-			Eventually(session, "2s").Should(Exit(0))
-			Expect(authServer.ReceivedRequests()).To(HaveLen(2))
-		})
-
 		Context("with --skip-tls-verification without a provided custom CA", func() {
 			var (
-				tlsserver *ghttp.Server
+				tlsServer *ghttp.Server
 			)
+
+			AfterEach(func() {
+				tlsServer.Close()
+			})
+
 			BeforeEach(func() {
-				tlsserver = ghttp.NewTLSServer()
+				tlsServer = ghttp.NewTLSServer()
 				flags = []string{
-					"-api", tlsserver.URL(),
+					"-api", tlsServer.URL(),
 					"-client-id", "some-name",
 					"-client-secret", "some-secret",
 					"-oauth-url", authServer.URL(),
 					"--skip-tls-verification",
 				}
-				tlsserver.AppendHandlers(
-					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("POST", "/routing/v1/routes"),
-						ghttp.VerifyHeader(http.Header{
-							"Authorization": []string{"bearer " + token},
-						}),
-						ghttp.RespondWithJSONEncoded(http.StatusOK, nil),
-					),
-					ghttp.CombineHandlers(
-						ghttp.VerifyRequest("POST", "/routing/v1/tcp_routes/routes"),
-						ghttp.VerifyHeader(http.Header{
-							"Authorization": []string{"bearer " + token},
-						}),
-						ghttp.RespondWithJSONEncoded(http.StatusOK, nil),
-					),
+				createHttpRoutesHandler := ghttp.CombineHandlers(
+					ghttp.VerifyRequest("POST", "/routing/v1/routes"),
+					ghttp.VerifyHeader(http.Header{
+						"Authorization": []string{"bearer " + token},
+					}),
+					ghttp.RespondWithJSONEncoded(http.StatusCreated, nil),
 				)
+
+				headers := make(http.Header)
+				headers.Set("Content-Type", "text/event-stream; charset=utf-8")
+
+				httpEvent := routing_api.Event{
+					Action: "Delete",
+					Route:  models.NewRoute("z.a.k", 63, "42.42.42.42", "Tomato", "https://route-service-url.com", 1),
+				}
+
+				httpEventString, err := json.Marshal(httpEvent.Route)
+				Expect(err).ToNot(HaveOccurred())
+
+				sseEvent := sse.Event{
+					Name: httpEvent.Action,
+					Data: httpEventString,
+				}
+
+				sseEventHandler := ghttp.CombineHandlers(
+					ghttp.VerifyRequest("GET", "/routing/v1/events"),
+					ghttp.RespondWith(http.StatusOK, sseEvent.Encode(), headers),
+				)
+
+				tlsServer.RouteToHandler("POST", "/routing/v1/routes", createHttpRoutesHandler)
+				tlsServer.RouteToHandler("GET", "/routing/v1/events", sseEventHandler)
 			})
 
 			It("successfully requests a token", func() {
@@ -457,9 +448,17 @@ var _ = Describe("Main", func() {
 
 				Eventually(session, "2s").Should(Exit(0))
 				Expect(authServer.ReceivedRequests()).To(HaveLen(2))
-				Expect(tlsserver.ReceivedRequests()).To(HaveLen(1))
+				Expect(tlsServer.ReceivedRequests()).To(HaveLen(1))
 			})
 
+			It("successfully streams events from the routing api", func() {
+				command := buildCommand("events", flags, []string{"--http"})
+				session := routeRegistrar(command...)
+
+				Eventually(session, "2s").Should(Exit(0))
+				Expect(authServer.ReceivedRequests()).To(HaveLen(2))
+				Expect(tlsServer.ReceivedRequests()).To(HaveLen(1))
+			})
 		})
 
 		Context("environment variables", func() {
@@ -470,7 +469,7 @@ var _ = Describe("Main", func() {
 						models.NewRoute("llama.example.com", 0, "", "yo", "", 5),
 						models.NewRoute("example.com", 8, "11", "yo", "", 1),
 					}
-					server.SetHandler(0,
+					server.AppendHandlers(
 						ghttp.CombineHandlers(
 							ghttp.VerifyRequest("GET", "/routing/v1/routes"),
 							ghttp.RespondWithJSONEncoded(http.StatusOK, routes),
