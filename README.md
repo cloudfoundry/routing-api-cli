@@ -4,6 +4,8 @@
 
 The Routing API CLI lets you list, register, and unregister routes with the Cloud Foundry [Routing API](https://github.com/cloudfoundry-incubator/routing-api).
 
+**Note**: This repository should be imported as `code.cloudfoundry.org/routing-api-cli`.
+
 ## Dependencies
 
 The Routing API uses OAuth tokens to authenticate clients. To obtain a token from UAA an OAuth client must first be created for the API client in UAA. For instructions on registering OAuth clients, see [Routing API Server Configuration](https://github.com/cloudfoundry-incubator/routing-api#oauth-clients).
@@ -21,7 +23,7 @@ See [Releases](https://github.com/cloudfoundry-incubator/routing-api-cli/release
 - Build the binary, and place it in your gopath:
 
   ```bash
-  cd $GOPATH/src/github.com/cloudfoundry-incubator/routing-api-cli
+  cd $GOPATH/src/code.cloudfoundry.org/routing-api-cli
   go build -o $GOPATH/bin/rtr
   ```
 
