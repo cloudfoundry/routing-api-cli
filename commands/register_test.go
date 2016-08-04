@@ -1,7 +1,7 @@
 package commands_test
 
 import (
-	"github.com/cloudfoundry-incubator/routing-api-cli/commands"
+	"code.cloudfoundry.org/routing-api-cli/commands"
 	"github.com/cloudfoundry-incubator/routing-api/fake_routing_api"
 	"github.com/cloudfoundry-incubator/routing-api/models"
 	. "github.com/onsi/ginkgo"

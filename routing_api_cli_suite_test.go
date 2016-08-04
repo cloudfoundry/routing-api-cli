@@ -17,6 +17,6 @@ var path string
 
 var _ = BeforeSuite(func() {
 	var err error
-	path, err = gexec.Build("github.com/cloudfoundry-incubator/routing-api-cli")
+	path, err = gexec.Build("code.cloudfoundry.org/routing-api-cli")
 	Expect(err).NotTo(HaveOccurred())
 })

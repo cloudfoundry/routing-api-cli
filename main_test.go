@@ -45,7 +45,8 @@ var _ = Describe("Main", func() {
 			token = "some-token"
 
 			authServer = ghttp.NewUnstartedServer()
-			basePath := filepath.Join(os.Getenv("GOPATH"), "src", "github.com", "cloudfoundry-incubator", "routing-api-cli", "fixtures")
+			basePath, err := filepath.Abs(filepath.Join("fixtures"))
+			Expect(err).ToNot(HaveOccurred())
 			cert, err := tls.LoadX509KeyPair(filepath.Join(basePath, "server.pem"), filepath.Join(basePath, "server.key"))
 			Expect(err).ToNot(HaveOccurred())
 			tlsConfig := &tls.Config{
