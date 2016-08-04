@@ -8,14 +8,14 @@ import (
 	"os"
 	"time"
 
+	"code.cloudfoundry.org/routing-api/models"
 	uaaclient "code.cloudfoundry.org/uaa-go-client"
 	uaaconfig "code.cloudfoundry.org/uaa-go-client/config"
-	"github.com/cloudfoundry-incubator/routing-api/models"
 
+	"code.cloudfoundry.org/routing-api"
 	"code.cloudfoundry.org/routing-api-cli/commands"
 	trace "code.cloudfoundry.org/trace-logger"
 	"github.com/cloudfoundry-incubator/cf-lager"
-	"github.com/cloudfoundry-incubator/routing-api"
 	"github.com/codegangsta/cli"
 	"github.com/pivotal-golang/clock"
 )

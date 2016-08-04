@@ -4,8 +4,8 @@ import (
 	"errors"
 
 	"code.cloudfoundry.org/routing-api-cli/commands"
-	"github.com/cloudfoundry-incubator/routing-api/fake_routing_api"
-	"github.com/cloudfoundry-incubator/routing-api/models"
+	"code.cloudfoundry.org/routing-api/fake_routing_api"
+	"code.cloudfoundry.org/routing-api/models"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
