@@ -8,16 +8,16 @@ import (
 	"os"
 	"time"
 
+	"code.cloudfoundry.org/cflager"
 	"code.cloudfoundry.org/routing-api/models"
 	uaaclient "code.cloudfoundry.org/uaa-go-client"
 	uaaconfig "code.cloudfoundry.org/uaa-go-client/config"
 
+	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/routing-api"
 	"code.cloudfoundry.org/routing-api-cli/commands"
 	trace "code.cloudfoundry.org/trace-logger"
-	"github.com/cloudfoundry-incubator/cf-lager"
 	"github.com/codegangsta/cli"
-	"github.com/pivotal-golang/clock"
 )
 
 const (
@@ -104,7 +104,7 @@ var environmentVariableHelp = `ENVIRONMENT VARIABLES:
    RTR_TRACE=true	Print API request diagnostics to stdout`
 
 func main() {
-	cf_lager.AddFlags(flag.CommandLine)
+	cflager.AddFlags(flag.CommandLine)
 	fmt.Println()
 	app := cli.NewApp()
 	app.Name = "rtr"
@@ -382,7 +382,7 @@ func checkError(message string, err error) {
 
 func newUaaClient(c *cli.Context) (uaaclient.Client, error) {
 
-	logger, _ := cf_lager.New("rtr")
+	logger, _ := cflager.New("rtr")
 	cfg := buildOauthConfig(c)
 	klok := clock.NewClock()
 
