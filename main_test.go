@@ -259,14 +259,13 @@ var _ = Describe("Main", func() {
 
 				tcpEvent = routing_api.TcpEvent{
 					Action: "Upsert",
-					TcpRouteMapping: models.TcpRouteMapping{
-						TcpRoute: models.TcpRoute{
-							RouterGroupGuid: "some-guid",
-							ExternalPort:    1234,
-						},
-						HostPort: 6789,
-						HostIP:   "some-ip",
-					},
+					TcpRouteMapping: models.NewTcpRouteMapping(
+						"some-guid",
+						1234,
+						"some-ip",
+						6789,
+						0,
+					),
 				}
 
 				tcpEventString, err = json.Marshal(tcpEvent.TcpRouteMapping)
