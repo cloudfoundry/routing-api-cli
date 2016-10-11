@@ -91,10 +91,10 @@ var _ = Describe("Main", func() {
 			)
 
 			command := buildCommand("register", flags, []string{"[{}]"})
-			session := routeRegistrar(command...)
+			session := routingAPICLI(command...)
 
 			Eventually(session, "2s").Should(Exit(0))
-			Expect(authServer.ReceivedRequests()).To(HaveLen(2))
+			Expect(authServer.ReceivedRequests()).To(HaveLen(1))
 		})
 
 		It("registers a route to the routing api", func() {
@@ -120,7 +120,7 @@ var _ = Describe("Main", func() {
 				),
 			)
 
-			session := routeRegistrar(command...)
+			session := routingAPICLI(command...)
 
 			Eventually(session, "2s").Should(Exit(0))
 			Expect(server.ReceivedRequests()).To(HaveLen(1))
@@ -160,7 +160,7 @@ var _ = Describe("Main", func() {
 				),
 			)
 
-			session := routeRegistrar(command...)
+			session := routingAPICLI(command...)
 
 			Eventually(session, "2s").Should(Exit(0))
 			Expect(string(session.Out.Contents())).To(ContainSubstring("Successfully registered routes: " + routes + "\n"))
@@ -191,7 +191,7 @@ var _ = Describe("Main", func() {
 				),
 			)
 
-			session := routeRegistrar(command...)
+			session := routingAPICLI(command...)
 
 			Eventually(session, "2s").Should(Exit(0))
 			Expect(string(session.Out.Contents())).To(ContainSubstring("Successfully unregistered routes: " + routes))
@@ -212,7 +212,7 @@ var _ = Describe("Main", func() {
 				),
 			)
 
-			session := routeRegistrar(command...)
+			session := routingAPICLI(command...)
 
 			expectedRoutes, err := json.Marshal(routes)
 			Expect(err).ToNot(HaveOccurred())
@@ -293,7 +293,7 @@ var _ = Describe("Main", func() {
 					),
 				)
 
-				session := routeRegistrar(command...)
+				session := routingAPICLI(command...)
 
 				Eventually(session, "2s").Should(Exit(0))
 				Expect(server.ReceivedRequests()).To(HaveLen(2))
@@ -312,7 +312,7 @@ var _ = Describe("Main", func() {
 
 					server.AppendHandlers(sseEventHandler)
 
-					session := routeRegistrar(command...)
+					session := routingAPICLI(command...)
 
 					Eventually(session, "2s").Should(Exit(0))
 					Expect(server.ReceivedRequests()).To(HaveLen(1))
@@ -333,7 +333,7 @@ var _ = Describe("Main", func() {
 				It("subscribes to TCP events", func() {
 					command := buildCommand("events", flagsWithTcp, []string{})
 
-					session := routeRegistrar(command...)
+					session := routingAPICLI(command...)
 
 					Eventually(session, "2s").Should(Exit(0))
 					Expect(server.ReceivedRequests()).To(HaveLen(1))
@@ -355,7 +355,7 @@ var _ = Describe("Main", func() {
 				It("subscribes to HTTP and TCP events", func() {
 					command := buildCommand("events", flagsWithAllProtocols, []string{})
 
-					session := routeRegistrar(command...)
+					session := routingAPICLI(command...)
 
 					Eventually(session, "2s").Should(Exit(0))
 					Expect(server.ReceivedRequests()).To(HaveLen(2))
@@ -373,7 +373,7 @@ var _ = Describe("Main", func() {
 				It("subscribes to HTTP and TCP events", func() {
 					command := buildCommand("events", flags, []string{})
 
-					session := routeRegistrar(command...)
+					session := routingAPICLI(command...)
 
 					Eventually(session, "2s").Should(Exit(0))
 					Expect(server.ReceivedRequests()).To(HaveLen(2))
@@ -436,27 +436,27 @@ var _ = Describe("Main", func() {
 
 			It("successfully requests a token", func() {
 				command := buildCommand("register", flags, []string{"[{}]"})
-				session := routeRegistrar(command...)
+				session := routingAPICLI(command...)
 
 				Eventually(session, "2s").Should(Exit(0))
-				Expect(authServer.ReceivedRequests()).To(HaveLen(2))
+				Expect(authServer.ReceivedRequests()).To(HaveLen(1))
 			})
 
 			It("successfully connects to routing api", func() {
 				command := buildCommand("register", flags, []string{"[{}]"})
-				session := routeRegistrar(command...)
+				session := routingAPICLI(command...)
 
 				Eventually(session, "2s").Should(Exit(0))
-				Expect(authServer.ReceivedRequests()).To(HaveLen(2))
+				Expect(authServer.ReceivedRequests()).To(HaveLen(1))
 				Expect(tlsServer.ReceivedRequests()).To(HaveLen(1))
 			})
 
 			It("successfully streams events from the routing api", func() {
 				command := buildCommand("events", flags, []string{"--http"})
-				session := routeRegistrar(command...)
+				session := routingAPICLI(command...)
 
 				Eventually(session, "2s").Should(Exit(0))
-				Expect(authServer.ReceivedRequests()).To(HaveLen(2))
+				Expect(authServer.ReceivedRequests()).To(HaveLen(1))
 				Expect(tlsServer.ReceivedRequests()).To(HaveLen(1))
 			})
 		})
@@ -479,7 +479,7 @@ var _ = Describe("Main", func() {
 
 				JustBeforeEach(func() {
 					command := buildCommand("list", flags, []string{})
-					session = routeRegistrar(command...)
+					session = routingAPICLI(command...)
 					Eventually(session, "2s").Should(Exit(0))
 				})
 
@@ -548,7 +548,7 @@ var _ = Describe("Main", func() {
 
 			It("checks for the presence of api", func() {
 				command := buildCommand("register", []string{}, []string{})
-				session := routeRegistrar(command...)
+				session := routingAPICLI(command...)
 
 				Eventually(session).Should(Exit(1))
 				Eventually(session).Should(Say("Must provide an API endpoint for the routing-api component.\n"))
@@ -557,7 +557,7 @@ var _ = Describe("Main", func() {
 
 		Context("when no flags are given", func() {
 			It("tells you everything you did wrong", func() {
-				session := routeRegistrar("register")
+				session := routingAPICLI("register")
 
 				Eventually(session).Should(Exit(1))
 				contents := session.Out.Contents()
@@ -569,28 +569,28 @@ var _ = Describe("Main", func() {
 		})
 
 		It("checks for a valid command", func() {
-			session := routeRegistrar("not-a-command")
+			session := routingAPICLI("not-a-command")
 
 			Eventually(session).Should(Exit(1))
 			Eventually(session).Should(Say("Not a valid command: not-a-command"))
 		})
 
 		It("outputs help info for a valid command", func() {
-			session := routeRegistrar("register")
+			session := routingAPICLI("register")
 
 			Eventually(session).Should(Exit(1))
 			Eventually(session).Should(Say("command register"))
 		})
 
 		It("outputs help info for a valid command", func() {
-			session := routeRegistrar("events")
+			session := routingAPICLI("events")
 
 			Eventually(session).Should(Exit(1))
 			Eventually(session).Should(Say("command events"))
 		})
 
 		It("outputs help info for a valid command", func() {
-			session := routeRegistrar("unregister")
+			session := routingAPICLI("unregister")
 
 			Eventually(session).Should(Exit(1))
 			Eventually(session).Should(Say("command unregister"))
@@ -599,7 +599,7 @@ var _ = Describe("Main", func() {
 		Context("register", func() {
 			It("checks for the presence of the route json", func() {
 				command := buildCommand("register", flags, []string{})
-				session := routeRegistrar(command...)
+				session := routingAPICLI(command...)
 
 				Eventually(session).Should(Exit(1))
 				Eventually(session).Should(Say("Must provide routes JSON."))
@@ -607,7 +607,7 @@ var _ = Describe("Main", func() {
 
 			It("fails if the request has invalid json", func() {
 				command := buildCommand("register", flags, []string{`[{"kind":"of","valid":"json}]`})
-				session := routeRegistrar(command...)
+				session := routingAPICLI(command...)
 
 				Eventually(session).Should(Exit(3))
 				Eventually(session).Should(Say("unexpected end of JSON input"))
@@ -615,7 +615,7 @@ var _ = Describe("Main", func() {
 
 			It("fails if there are unexpected arguments", func() {
 				command := buildCommand("register", flags, []string{`[{"kind":"of","valid":"json}]`, "ice cream"})
-				session := routeRegistrar(command...)
+				session := routingAPICLI(command...)
 
 				Eventually(session).Should(Exit(1))
 				Eventually(session).Should(Say("Unexpected arguments."))
@@ -623,7 +623,7 @@ var _ = Describe("Main", func() {
 
 			It("shows the error if registration fails", func() {
 				command := buildCommand("register", flags, []string{"[{}]"})
-				session := routeRegistrar(command...)
+				session := routingAPICLI(command...)
 
 				Eventually(session, 5*time.Second).Should(Exit(3))
 				Eventually(session).Should(Say("route registration failed:"))
@@ -633,7 +633,7 @@ var _ = Describe("Main", func() {
 		Context("unregister", func() {
 			It("checks for the presence of the route json", func() {
 				command := buildCommand("unregister", flags, []string{})
-				session := routeRegistrar(command...)
+				session := routingAPICLI(command...)
 
 				Eventually(session).Should(Exit(1))
 				Eventually(session).Should(Say("Must provide routes JSON."))
@@ -641,7 +641,7 @@ var _ = Describe("Main", func() {
 
 			It("fails if the unregister request has invalid json", func() {
 				command := buildCommand("unregister", flags, []string{`[{"kind":"of","valid":"json}]`})
-				session := routeRegistrar(command...)
+				session := routingAPICLI(command...)
 
 				Eventually(session).Should(Exit(3))
 				Eventually(session).Should(Say("unexpected end of JSON input"))
@@ -649,7 +649,7 @@ var _ = Describe("Main", func() {
 
 			It("fails if there are unexpected arguments", func() {
 				command := buildCommand("unregister", flags, []string{`[{"kind":"of","valid":"json}]`, "ice cream"})
-				session := routeRegistrar(command...)
+				session := routingAPICLI(command...)
 
 				Eventually(session).Should(Exit(1))
 				Eventually(session).Should(Say("Unexpected arguments."))
@@ -657,7 +657,7 @@ var _ = Describe("Main", func() {
 
 			It("shows the error if unregistration fails", func() {
 				command := buildCommand("unregister", flags, []string{"[{}]"})
-				session := routeRegistrar(command...)
+				session := routingAPICLI(command...)
 
 				Eventually(session, 5*time.Second).Should(Say("route unregistration failed:"))
 				Eventually(session, 5*time.Second).Should(Exit(3))
@@ -667,7 +667,7 @@ var _ = Describe("Main", func() {
 		Context("events", func() {
 			It("fails if there are unexpected arguments", func() {
 				command := buildCommand("events", flags, []string{"ice cream"})
-				session := routeRegistrar(command...)
+				session := routingAPICLI(command...)
 
 				Eventually(session).Should(Exit(1))
 				Eventually(session).Should(Say("Unexpected arguments."))
@@ -675,7 +675,7 @@ var _ = Describe("Main", func() {
 
 			It("shows the error if streaming events fails", func() {
 				command := buildCommand("events", flags, []string{})
-				session := routeRegistrar(command...)
+				session := routingAPICLI(command...)
 
 				Eventually(session, 5*time.Second).Should(Exit(3))
 				Eventually(session).Should(Say("streaming events failed"))
@@ -685,7 +685,7 @@ var _ = Describe("Main", func() {
 		Context("list", func() {
 			It("fails if there are unexpected arguments", func() {
 				command := buildCommand("list", flags, []string{"ice cream"})
-				session := routeRegistrar(command...)
+				session := routingAPICLI(command...)
 
 				Eventually(session).Should(Exit(1))
 				Eventually(session).Should(Say("Unexpected arguments."))
@@ -693,7 +693,7 @@ var _ = Describe("Main", func() {
 
 			It("shows the error if listing routes fails", func() {
 				command := buildCommand("list", flags, []string{})
-				session := routeRegistrar(command...)
+				session := routingAPICLI(command...)
 
 				Eventually(session, 5*time.Second).Should(Exit(3))
 				Eventually(session).Should(Say("listing routes failed:"))
@@ -702,7 +702,7 @@ var _ = Describe("Main", func() {
 	})
 })
 
-func routeRegistrar(args ...string) *Session {
+func routingAPICLI(args ...string) *Session {
 	session, err := Start(exec.Command(path, args...), GinkgoWriter, GinkgoWriter)
 	Expect(err).ToNot(HaveOccurred())
 

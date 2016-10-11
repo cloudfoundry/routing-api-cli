@@ -390,7 +390,5 @@ func newUaaClient(c *cli.Context) (uaaclient.Client, error) {
 	if err != nil {
 		return nil, err
 	}
-	_, err = uaaClient.FetchToken(true)
-
 	return uaaClient, nil
 }
