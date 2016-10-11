@@ -532,7 +532,7 @@ var _ = Describe("Main", func() {
 				"-api", "some-server-name",
 				"-client-id", "some-name",
 				"-client-secret", "some-secret",
-				"-oauth-url", "http://some.oauth.url",
+				"-oauth-url", "invalid-url",
 				"--skip-tls-verification",
 			}
 		})
