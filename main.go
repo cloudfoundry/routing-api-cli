@@ -8,6 +8,7 @@ import (
 	"os"
 	"time"
 
+	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagerflags"
 	"code.cloudfoundry.org/routing-api/models"
 	uaaclient "code.cloudfoundry.org/uaa-go-client"
@@ -381,12 +382,20 @@ func checkError(message string, err error) {
 }
 
 func newUaaClient(c *cli.Context) (uaaclient.Client, error) {
+	rtr_trace := os.Getenv(RTR_TRACE)
+	var logger lager.Logger
 
-	logger, _ := lagerflags.New("rtr")
+	if rtr_trace == "true" {
+		logger, _ = lagerflags.New("rtr")
+	} else {
+		logger = lager.NewLogger("rtr")
+	}
+
 	cfg := buildOauthConfig(c)
 	klok := clock.NewClock()
 
 	uaaClient, err := uaaclient.NewClient(logger, cfg, klok)
+
 	if err != nil {
 		return nil, err
 	}
