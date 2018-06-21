@@ -3,10 +3,10 @@ package main_test
 import (
 	"crypto/tls"
 	"encoding/json"
+	"encoding/pem"
 	"io/ioutil"
 	"net/http"
 	"os/exec"
-	"path/filepath"
 	"time"
 
 	"os"
@@ -38,6 +38,7 @@ var _ = Describe("Main", func() {
 			server     *ghttp.Server
 			authServer *ghttp.Server
 			token      string
+			caLocation string
 		)
 
 		BeforeEach(func() {
@@ -45,19 +46,27 @@ var _ = Describe("Main", func() {
 			token = "some-token"
 
 			authServer = ghttp.NewUnstartedServer()
-			basePath, err := filepath.Abs(filepath.Join("fixtures"))
+			caCert, caPrivKey, err := createCA()
 			Expect(err).ToNot(HaveOccurred())
-			cert, err := tls.LoadX509KeyPair(filepath.Join(basePath, "server.pem"), filepath.Join(basePath, "server.key"))
+
+			serverCert, err := createCertificate(caCert, caPrivKey, isServer)
 			Expect(err).ToNot(HaveOccurred())
+
 			tlsConfig := &tls.Config{
-				Certificates: []tls.Certificate{cert},
+				Certificates: []tls.Certificate{serverCert},
 			}
 			authServer.AllowUnhandledRequests = true
 			authServer.UnhandledRequestStatusCode = http.StatusOK
 			authServer.HTTPTestServer.TLS = tlsConfig
 			authServer.HTTPTestServer.StartTLS()
 
-			certs := filepath.Join(basePath, "ca.pem")
+			f, err := ioutil.TempFile("", "routing-api-cli-ca")
+			Expect(err).ToNot(HaveOccurred())
+
+			caLocation = f.Name()
+
+			err = pem.Encode(f, &pem.Block{Type: "CERTIFICATE", Bytes: caCert.Raw})
+			Expect(err).ToNot(HaveOccurred())
 
 			authServer.RouteToHandler("POST", "/oauth/token",
 				func(w http.ResponseWriter, req *http.Request) {
@@ -70,13 +79,15 @@ var _ = Describe("Main", func() {
 				"-client-id", "some-name",
 				"-client-secret", "some-secret",
 				"-oauth-url", authServer.URL(),
-				"--ca-certs", certs,
+				"--ca-certs", f.Name(),
 			}
 		})
 
 		AfterEach(func() {
 			authServer.Close()
 			server.Close()
+			err := os.Remove(caLocation)
+			Expect(err).NotTo(HaveOccurred())
 		})
 
 		It("successfully requests a token", func() {
