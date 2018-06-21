@@ -626,21 +626,21 @@ var _ = Describe("Main", func() {
 			session := routingAPICLI("register")
 
 			Eventually(session).Should(Exit(1))
-			Eventually(session).Should(Say("command register"))
+			Eventually(session).Should(Say("register"))
 		})
 
 		It("outputs help info for a valid command", func() {
 			session := routingAPICLI("events")
 
 			Eventually(session).Should(Exit(1))
-			Eventually(session).Should(Say("command events"))
+			Eventually(session).Should(Say("events"))
 		})
 
 		It("outputs help info for a valid command", func() {
 			session := routingAPICLI("unregister")
 
 			Eventually(session).Should(Exit(1))
-			Eventually(session).Should(Say("command unregister"))
+			Eventually(session).Should(Say("unregister"))
 		})
 
 		Context("register", func() {
