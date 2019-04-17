@@ -15,8 +15,10 @@ func TestRoutingApiCli(t *testing.T) {
 
 var path string
 
-var _ = BeforeSuite(func() {
-	var err error
-	path, err = gexec.Build("code.cloudfoundry.org/routing-api-cli")
+var _ = SynchronizedBeforeSuite(func() []byte {
+	binaryPath, err := gexec.Build("code.cloudfoundry.org/routing-api-cli")
 	Expect(err).NotTo(HaveOccurred())
+	return []byte(binaryPath)
+}, func(data []byte){
+	path = string(data)
 })
