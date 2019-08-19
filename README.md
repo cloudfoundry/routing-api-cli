@@ -5,6 +5,7 @@
 The Routing API CLI lets you list, register, and unregister routes with the Cloud Foundry [Routing API](https://github.com/cloudfoundry-incubator/routing-api).
 
 **Note**: This repository should be imported as `code.cloudfoundry.org/routing-api-cli`.
+**Note**: This repository was built as an internal tool and is not actively maintained. Your mileage may vary.
 
 ## Dependencies
 
