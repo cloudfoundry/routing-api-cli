@@ -1,27 +1,36 @@
-[![Build Status](https://travis-ci.org/cloudfoundry-incubator/routing-api-cli.svg)](https://travis-ci.org/cloudfoundry-incubator/routing-api-cli)
+[![Build Status](https://travis-ci.org/cloudfoundry/routing-api-cli.svg)](https://travis-ci.org/cloudfoundry/routing-api-cli)
 
 # Routing API CLI
 
-The Routing API CLI lets you list, register, and unregister routes with the Cloud Foundry [Routing API](https://github.com/cloudfoundry-incubator/routing-api).
+The Routing API CLI lets you list, register, and unregister routes with the
+Cloud Foundry [Routing API](https://github.com/cloudfoundry/routing-api).
 
-**Note**: This repository should be imported as `code.cloudfoundry.org/routing-api-cli`.
+**Note**: This repository should be imported as
+`code.cloudfoundry.org/routing-api-cli`.
 
 **Note**: This repository was built as an internal tool and is not actively maintained. Your mileage may vary.
 
 ## Dependencies
 
-The Routing API uses OAuth tokens to authenticate clients. To obtain a token from UAA an OAuth client must first be created for the API client in UAA. For instructions on registering OAuth clients, see [Routing API Server Configuration](https://github.com/cloudfoundry-incubator/routing-api#oauth-clients).
+The Routing API uses OAuth tokens to authenticate clients. To obtain a token
+from UAA an OAuth client must first be created for the API client in UAA. For
+instructions on registering OAuth clients, see [Routing API Server
+Configuration](https://github.com/cloudfoundry-incubator/routing-api#oauth-clients).
 
 ## Installation
 
 ### Download Binaries
 
-Download the binary at [Releases](https://github.com/cloudfoundry-incubator/routing-api-cli/releases). Move the binary to a directory in your $PATH. Run `rtr -v` to confirm that the Routing API CLI is working properly.
+Download the binary at
+[Releases](https://github.com/cloudfoundry/routing-api-cli/releases). Move the
+binary to a directory in your $PATH. Run `rtr -v` to confirm that the Routing
+API CLI is working properly.
 
 ### Compile
 
 - Go should be installed and in the PATH
-- Checkout code and set GOPATH based on [routing-release](https://github.com/cloudfoundry-incubator/routing-release#-get-the-code)
+- Checkout code and set GOPATH based on
+  [routing-release](https://github.com/cloudfoundry/routing-release#get-the-code)
 - Build the binary, and place it in your gopath:
 
   ```bash
@@ -36,7 +45,7 @@ Each command has required arguments and route structure.
 Required arguments:
 
 **--api**: the routing API endpoint, e.g. `http://api.10.244.0.34.xip.io`<br />
-**--client-id**: the id of the client registered with your OAuth provider with the [proper authorities](https://github.com/cloudfoundry-incubator/routing-api#oauth-clients), e.g. `routing_api_client`<br />
+**--client-id**: the id of the client registered with your OAuth provider with the [proper authorities](https://github.com/cloudfoundry/routing-api#oauth-clients), e.g. `routing_api_client`<br />
 **--client-secret**: your OAuth client secret, e.g. `route_secret`<br />
 **--oauth-url**: the OAuth provider endpoint with optional port, e.g. `http://uaa.10.244.0.34.xip.io`
 
