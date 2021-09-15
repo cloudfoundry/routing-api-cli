@@ -19,12 +19,12 @@ Download the binary at [Releases](https://github.com/cloudfoundry-incubator/rout
 ### Compile
 
 - Go should be installed and in the PATH
-- Checkout code and set GOPATH based on [routing-release](https://github.com/cloudfoundry-incubator/routing-release#-get-the-code)
-- Build the binary, and place it in your gopath:
+- Checkout [routing-release](https://github.com/cloudfoundry-incubator/routing-release#-get-the-code)
+- Build the binary, and place it in your path:
 
   ```bash
-  cd $GOPATH/src/code.cloudfoundry.org/routing-api-cli
-  go build -o $GOPATH/bin/rtr
+  cd routing-release/src/code.cloudfoundry.org
+  go build -o ../../../bin/rtr routing-api-cli
   ```
 
 ## Usage
