@@ -11,7 +11,7 @@ import (
 
 	"os"
 
-	"code.cloudfoundry.org/routing-api"
+	routing_api "code.cloudfoundry.org/routing-api"
 	"code.cloudfoundry.org/routing-api/models"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -70,6 +70,8 @@ var _ = Describe("Main", func() {
 
 			authServer.RouteToHandler("POST", "/oauth/token",
 				func(w http.ResponseWriter, req *http.Request) {
+					w.Header().Set("Content-Type", "application/json")
+
 					jsonBytes := []byte(`{"access_token":"some-token", "expires_in":10}`)
 					w.Write(jsonBytes)
 				})
@@ -262,7 +264,6 @@ var _ = Describe("Main", func() {
 					Expect(err).ToNot(HaveOccurred())
 
 					Eventually(session, "2s").Should(Exit(0))
-					Expect(string(session.Out.Contents())).To(ContainSubstring("uaa-client"))
 					Expect(string(session.Out.Contents())).To(ContainSubstring(string(expectedRoutes) + "\n"))
 					Expect(server.ReceivedRequests()).To(HaveLen(1))
 				})
