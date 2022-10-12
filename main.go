@@ -2,25 +2,23 @@ package main
 
 import (
 	"context"
-	"crypto/tls"
-	"crypto/x509"
 	"encoding/json"
-	"errors"
 	"flag"
 	"fmt"
-	"io/ioutil"
-	"net/http"
 	"net/url"
 	"os"
+	"strconv"
+	"strings"
 	"time"
 
+	"code.cloudfoundry.org/clock"
+	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagerflags"
 	"code.cloudfoundry.org/routing-api/models"
-	"github.com/cloudfoundry-community/go-uaa"
-	uaaclient "github.com/cloudfoundry-community/go-uaa"
 
 	routing_api "code.cloudfoundry.org/routing-api"
 	"code.cloudfoundry.org/routing-api-cli/commands"
+	uaaclient "code.cloudfoundry.org/routing-api/uaaclient"
 	trace "code.cloudfoundry.org/trace-logger"
 	"github.com/codegangsta/cli"
 )
@@ -346,13 +344,44 @@ func commandNotFound(c *cli.Context, cmd string) {
 }
 
 func newRoutingApiClient(c *cli.Context) (routing_api.Client, error) {
+	rtr_trace := os.Getenv(RTR_TRACE)
+	var logger lager.Logger
+	if rtr_trace == "true" {
+		logger, _ = lagerflags.New("rtr")
+	} else {
+		logger = lager.NewLogger("rtr")
+	}
 
-	uaaClient, err := newUaaClient(c)
+	tokenURL := c.String("oauth-url")
+	u, err := url.Parse(c.String("oauth-url"))
+	if err != nil {
+		return nil, err
+	}
+	addr := strings.Split(u.Host, ":")
+	if len(addr) < 2 {
+		return nil, fmt.Errorf("Invalid oauth url: %s", tokenURL)
+	}
+	port, err := strconv.Atoi(addr[1])
 	if err != nil {
 		return nil, err
 	}
 
-	token, err := uaaClient.Token(context.Background())
+	uaaConfig := uaaclient.Config{
+		SkipSSLValidation: c.Bool("skip-tls-verification"),
+		ClientName:        c.String("client-id"),
+		ClientSecret:      c.String("client-secret"),
+		CACerts:           c.String("ca-certs"),
+		TokenEndpoint:     addr[0],
+		Port:              port,
+	}
+
+	clk := clock.NewClock()
+	uaaClient, err := uaaclient.NewTokenFetcher(false, uaaConfig, clk, 3, 500*time.Millisecond, 30, logger)
+	if err != nil {
+		return nil, err
+	}
+
+	token, err := uaaClient.FetchToken(context.Background(), true)
 	if err != nil {
 		return nil, err
 	}
@@ -368,42 +397,4 @@ func checkError(message string, err error) {
 		fmt.Println(message, err.Error())
 		os.Exit(3)
 	}
-}
-
-func newUaaClient(c *cli.Context) (*uaaclient.API, error) {
-	tokenUrl := c.String("oauth-url")
-	skipSSLValidation := c.Bool("skip-tls-verification")
-	caCerts := c.String("ca-certs")
-	clientName := c.String("client-id")
-	clientSecret := c.String("client-secret")
-
-	tlsConfig := &tls.Config{InsecureSkipVerify: skipSSLValidation}
-	if caCerts != "" {
-		certBytes, err := ioutil.ReadFile(caCerts)
-		if err != nil {
-			return nil, fmt.Errorf("Failed to read ca cert file: %s", err.Error())
-		}
-
-		caCertPool := x509.NewCertPool()
-		if ok := caCertPool.AppendCertsFromPEM(certBytes); !ok {
-			return nil, errors.New("Unable to load caCert")
-		}
-		tlsConfig.RootCAs = caCertPool
-	}
-
-	tr := &http.Transport{
-		TLSClientConfig: tlsConfig,
-	}
-
-	httpClient := &http.Client{Transport: tr}
-	httpClient.CheckRedirect = func(req *http.Request, via []*http.Request) error {
-		return http.ErrUseLastResponse
-	}
-
-	uaaClient, err := uaaclient.New(tokenUrl, uaa.WithClientCredentials(clientName, clientSecret, uaa.JSONWebToken), uaa.WithClient(httpClient), uaa.WithSkipSSLValidation(skipSSLValidation))
-
-	if err != nil {
-		return nil, err
-	}
-	return uaaClient, nil
 }
