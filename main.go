@@ -1,22 +1,24 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"flag"
 	"fmt"
 	"net/url"
 	"os"
+	"strconv"
+	"strings"
 	"time"
 
+	"code.cloudfoundry.org/clock"
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagerflags"
 	"code.cloudfoundry.org/routing-api/models"
-	uaaclient "code.cloudfoundry.org/uaa-go-client"
-	uaaconfig "code.cloudfoundry.org/uaa-go-client/config"
 
-	"code.cloudfoundry.org/clock"
-	"code.cloudfoundry.org/routing-api"
+	routing_api "code.cloudfoundry.org/routing-api"
 	"code.cloudfoundry.org/routing-api-cli/commands"
+	uaaclient "code.cloudfoundry.org/routing-api/uaaclient"
 	trace "code.cloudfoundry.org/trace-logger"
 	"github.com/codegangsta/cli"
 )
@@ -281,21 +283,6 @@ func streamTcpEvents(client routing_api.Client, eventChan chan string, errorChan
 	}
 }
 
-func buildOauthConfig(c *cli.Context) *uaaconfig.Config {
-
-	return &uaaconfig.Config{
-		UaaEndpoint:           c.String("oauth-url"),
-		SkipVerification:      c.Bool("skip-tls-verification"),
-		ClientName:            c.String("client-id"),
-		ClientSecret:          c.String("client-secret"),
-		MaxNumberOfRetries:    3,
-		RetryInterval:         500 * time.Millisecond,
-		ExpirationBufferInSec: 30,
-		CACerts:               c.String("ca-certs"),
-	}
-
-}
-
 func checkFlags(c *cli.Context) []string {
 	var issues []string
 
@@ -357,13 +344,44 @@ func commandNotFound(c *cli.Context, cmd string) {
 }
 
 func newRoutingApiClient(c *cli.Context) (routing_api.Client, error) {
+	rtr_trace := os.Getenv(RTR_TRACE)
+	var logger lager.Logger
+	if rtr_trace == "true" {
+		logger, _ = lagerflags.New("rtr")
+	} else {
+		logger = lager.NewLogger("rtr")
+	}
 
-	uaaClient, err := newUaaClient(c)
+	tokenURL := c.String("oauth-url")
+	u, err := url.Parse(c.String("oauth-url"))
+	if err != nil {
+		return nil, err
+	}
+	addr := strings.Split(u.Host, ":")
+	if len(addr) < 2 {
+		return nil, fmt.Errorf("Invalid oauth url: %s", tokenURL)
+	}
+	port, err := strconv.Atoi(addr[1])
 	if err != nil {
 		return nil, err
 	}
 
-	token, err := uaaClient.FetchToken(true)
+	uaaConfig := uaaclient.Config{
+		SkipSSLValidation: c.Bool("skip-tls-verification"),
+		ClientName:        c.String("client-id"),
+		ClientSecret:      c.String("client-secret"),
+		CACerts:           c.String("ca-certs"),
+		TokenEndpoint:     addr[0],
+		Port:              port,
+	}
+
+	clk := clock.NewClock()
+	uaaClient, err := uaaclient.NewTokenFetcher(false, uaaConfig, clk, 3, 500*time.Millisecond, 30, logger)
+	if err != nil {
+		return nil, err
+	}
+
+	token, err := uaaClient.FetchToken(context.Background(), true)
 	if err != nil {
 		return nil, err
 	}
@@ -379,25 +397,4 @@ func checkError(message string, err error) {
 		fmt.Println(message, err.Error())
 		os.Exit(3)
 	}
-}
-
-func newUaaClient(c *cli.Context) (uaaclient.Client, error) {
-	rtr_trace := os.Getenv(RTR_TRACE)
-	var logger lager.Logger
-
-	if rtr_trace == "true" {
-		logger, _ = lagerflags.New("rtr")
-	} else {
-		logger = lager.NewLogger("rtr")
-	}
-
-	cfg := buildOauthConfig(c)
-	klok := clock.NewClock()
-
-	uaaClient, err := uaaclient.NewClient(logger, cfg, klok)
-
-	if err != nil {
-		return nil, err
-	}
-	return uaaClient, nil
 }
