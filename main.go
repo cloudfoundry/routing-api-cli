@@ -18,8 +18,8 @@ import (
 
 	routing_api "code.cloudfoundry.org/routing-api"
 	"code.cloudfoundry.org/routing-api-cli/commands"
+	"code.cloudfoundry.org/routing-api/trace"
 	uaaclient "code.cloudfoundry.org/routing-api/uaaclient"
-	trace "code.cloudfoundry.org/trace-logger"
 	"github.com/codegangsta/cli"
 )
 
