@@ -4,4 +4,4 @@ set -e -u -x
 
 go vet ./...
 
-ginkgo -r -fail-on-pending -randomize-all -race "$@"
+go run github.com/onsi/ginkgo/v2/ginkgo -r -fail-on-pending -randomize-all -race "$@"
