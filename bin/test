@@ -1,7 +1,0 @@
-#!/bin/bash
-
-set -e -u -x
-
-go vet ./...
-
-go run github.com/onsi/ginkgo/v2/ginkgo -r -fail-on-pending -randomize-all -race "$@"
