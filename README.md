@@ -94,3 +94,18 @@ rtr register --api https://api.example.com --client-id admin --client-secret adm
 
 rtr unregister --api https://api.example.com --client-id admin --client-secret admin-secret --oauth-url https://uaa.example.com '[{"route":"undesiredroute.com","port":12345,"ip":"1.2.3.4"}]'
 ```
+
+## Development
+
+### <a name="dependencies"></a>Dependencies
+
+This repository's dependencies are managed using
+[routing-release](https://github.com/cloudfoundry/routing-release). Please refer to documentation in that repository for setting up tests
+
+### Executables
+
+1. `bin/test.bash`: This file is used to run test in Docker & CI. Please refer to [Dependencies](#dependencies) for setting up tests.
+
+### Reporting issues and requesting features
+
+Please report all issues and feature requests in [cloudfoundry/routing-release](https://github.com/cloudfoundry/routing-release).
