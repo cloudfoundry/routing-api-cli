@@ -756,13 +756,3 @@ func routingAPICLI(args ...string) *Session {
 
 	return session
 }
-
-func verifyBody(expectedBody string) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		body, err := ioutil.ReadAll(r.Body)
-		Expect(err).ToNot(HaveOccurred())
-
-		defer r.Body.Close()
-		Expect(string(body)).To(Equal(expectedBody))
-	}
-}
