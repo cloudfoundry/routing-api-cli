@@ -4,7 +4,6 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"encoding/pem"
-	"io/ioutil"
 	"net/http"
 	"os/exec"
 	"time"
@@ -60,7 +59,7 @@ var _ = Describe("Main", func() {
 			authServer.HTTPTestServer.TLS = tlsConfig
 			authServer.HTTPTestServer.StartTLS()
 
-			f, err := ioutil.TempFile("", "routing-api-cli-ca")
+			f, err := os.CreateTemp("", "routing-api-cli-ca")
 			Expect(err).ToNot(HaveOccurred())
 
 			caLocation = f.Name()
