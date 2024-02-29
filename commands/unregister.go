@@ -1,7 +1,7 @@
 package commands
 
 import (
-	"code.cloudfoundry.org/routing-api"
+	routing_api "code.cloudfoundry.org/routing-api"
 	"code.cloudfoundry.org/routing-api/models"
 )
 
