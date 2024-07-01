@@ -20,7 +20,7 @@ import (
 	"code.cloudfoundry.org/routing-api-cli/commands"
 	"code.cloudfoundry.org/routing-api/trace"
 	uaaclient "code.cloudfoundry.org/routing-api/uaaclient"
-	"github.com/codegangsta/cli"
+	"github.com/urfave/cli"
 )
 
 const (
