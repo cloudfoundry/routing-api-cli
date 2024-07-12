@@ -311,7 +311,11 @@ var _ = Describe("Main", func() {
 						1234,
 						"some-ip",
 						6789,
+						6790,
+						"instance-guid",
+						nil,
 						0,
+						models.ModificationTag{},
 					),
 				}
 
