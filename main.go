@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"log"
 	"net/url"
 	"os"
 	"strconv"
@@ -123,7 +124,10 @@ func main() {
 
 	trace.NewLogger(os.Getenv(RTR_TRACE))
 
-	app.Run(os.Args)
+	err := app.Run(os.Args)
+	if err != nil {
+		log.Fatalf("Error running routing-api-cli: %s\n", err)
+	}
 	os.Exit(0)
 }
 
@@ -334,7 +338,10 @@ func printHelpForCommand(c *cli.Context, issues []string, cmd string) {
 		fmt.Println(issue)
 	}
 	fmt.Println()
-	cli.ShowCommandHelp(c, cmd)
+	err := cli.ShowCommandHelp(c, cmd)
+	if err != nil {
+		fmt.Printf("Help Error: %s\n", err)
+	}
 	os.Exit(1)
 }
 
