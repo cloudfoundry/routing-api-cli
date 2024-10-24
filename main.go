@@ -368,7 +368,7 @@ func newRoutingApiClient(c *cli.Context) (routing_api.Client, error) {
 	if len(addr) < 2 {
 		return nil, fmt.Errorf("Invalid oauth url: %s", tokenURL)
 	}
-	port, err := strconv.Atoi(addr[1])
+	port, err := strconv.ParseUint(addr[1], 10, 16)
 	if err != nil {
 		return nil, err
 	}
@@ -379,7 +379,7 @@ func newRoutingApiClient(c *cli.Context) (routing_api.Client, error) {
 		ClientSecret:      c.String("client-secret"),
 		CACerts:           c.String("ca-certs"),
 		TokenEndpoint:     addr[0],
-		Port:              port,
+		Port:              uint16(port),
 	}
 
 	clk := clock.NewClock()
